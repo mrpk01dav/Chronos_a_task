@@ -1,0 +1,34 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <defs>
+    <linearGradient id="bgGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#12131C"/>
+      <stop offset="100%" stop-color="#08090D"/>
+    </linearGradient>
+    <linearGradient id="primaryGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#6366F1"/>
+      <stop offset="100%" stop-color="#8B5CF6"/>
+    </linearGradient>
+    <linearGradient id="accentGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#38BDF8"/>
+      <stop offset="100%" stop-color="#6366F1"/>
+    </linearGradient>
+    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+      <feDropShadow dx="0" dy="6" stdDeviation="12" flood-color="#6366F1" flood-opacity="0.35"/>
+    </filter>
+  </defs>
+  <!-- Background squircle -->
+  <rect width="512" height="512" rx="128" fill="url(#bgGrad)"/>
+  <rect width="504" height="504" x="4" y="4" rx="124" fill="none" stroke="#252736" stroke-width="2"/>
+  
+  <!-- Outer subtle circular progress ring -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="#1E2130" stroke-width="24" stroke-linecap="round"/>
+  <!-- Active ring segment -->
+  <circle cx="256" cy="256" r="160" fill="none" stroke="url(#accentGrad)" stroke-width="24" stroke-linecap="round" stroke-dasharray="1005" stroke-dashoffset="320" transform="rotate(-90 256 256)" filter="url(#glow)"/>
+  
+  <!-- Inner clock & checkmark icon -->
+  <path d="M190 260 L235 305 L330 200" fill="none" stroke="url(#primaryGrad)" stroke-width="28" stroke-linecap="round" stroke-linejoin="round" filter="url(#glow)"/>
+  
+  <!-- Bell / Reminder badge dot -->
+  <circle cx="360" cy="150" r="22" fill="#38BDF8" filter="url(#glow)"/>
+  <circle cx="360" cy="150" r="10" fill="#FFFFFF"/>
+</svg>

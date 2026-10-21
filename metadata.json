@@ -1,0 +1,6 @@
+{
+  "name": "Chronos - Task Tracker & Reminders",
+  "description": "Modern dark-mode Android task tracker, smart reminder system, recurring task scheduler, productivity reports, and goal tracker.",
+  "requestFramePermissions": ["notifications"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
