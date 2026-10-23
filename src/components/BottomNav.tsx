@@ -42,6 +42,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
+              aria-label={tab.label}
               className={`flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 select-none cursor-pointer ${
                 isActive ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}
@@ -69,6 +70,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
         <div className="flex flex-col items-center justify-center px-1">
           <button
             onClick={onQuickAdd}
+            aria-label="Create new task"
             className="w-12 h-12 -mt-5 rounded-2xl bg-gradient-to-tr from-indigo-500 via-indigo-600 to-purple-600 text-white flex items-center justify-center shadow-lg shadow-indigo-500/35 hover:scale-105 active:scale-95 transition-all duration-150 cursor-pointer border border-white/20"
             title="Create new task"
           >
@@ -86,6 +88,7 @@ export const BottomNav: React.FC<BottomNavProps> = ({
             <button
               key={tab.id}
               onClick={() => onTabChange(tab.id)}
+              aria-label={tab.label}
               className={`flex flex-col items-center justify-center flex-1 py-1 transition-all duration-200 select-none cursor-pointer ${
                 isActive ? 'text-indigo-400 font-bold' : 'text-slate-400 hover:text-slate-200'
               }`}

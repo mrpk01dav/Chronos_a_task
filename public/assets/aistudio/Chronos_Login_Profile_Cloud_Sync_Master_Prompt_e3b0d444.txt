@@ -1,0 +1,213 @@
+CHRONOS LOGIN, PROFILE & CLOUD SYNCHRONIZATION
+MASTER IMPLEMENTATION PROMPT
+Platforms: Web application + Native Android
+
+ROLE
+Act as a senior full-stack and Android engineer specializing in secure authentication, Firebase, modern web development, Kotlin, Jetpack Compose, Room, cloud synchronization, data migration, accessibility, and regression testing.
+
+OBJECTIVE
+Plan and implement a secure Login, Sign Up, User Profile, and cloud synchronization system for the existing Chronos Task Planner across:
+1. The live web application.
+2. The separate native Android application.
+
+Both apps should use the same user accounts and cloud data. Preserve existing functionality and user data. Audit the source before making changes.
+
+PROJECT CONTEXT
+- Web app: https://chronos-task-planne.ai.studio
+- GitHub repository: https://github.com/mrpk01dav/Chronos
+- Native Android package previously identified: com.chronos.tasktracker
+- Native Android technology previously reported: Kotlin, Jetpack Compose, Room, AlarmManager, and BroadcastReceivers.
+- The web app and native Android project are separate projects. Do not assume the deployed website, GitHub repository, and supplied ZIP contain identical code.
+- Existing functionality may include tasks, daily/weekly/monthly/yearly planning, reminders, notifications, recurring tasks, completion remarks, calendar views, reports, and dark mode. Verify each feature from source rather than assuming it exists.
+- Previously reported web risks include time-zone/date bugs, daily recurrence duplication, demo data being restored when storage is empty, and other UI/accessibility issues. Re-test these against the current source.
+- Do not modify source code, production data, or deployment until the audit is complete and I explicitly authorize implementation.
+
+PHASE 0 — AUDIT BEFORE MODIFICATION
+Audit the web app and native Android project separately.
+
+1. Inspect all supplied source files, project structure, build files, dependencies, configuration, storage/database models, routes/screens, reminders, recurrence logic, and tests.
+2. Determine how tasks and settings are currently stored.
+3. Identify missing files, build blockers, existing bugs, security risks, and migration requirements.
+4. Determine whether the deployed web app corresponds to the available source repository. Clearly state when this cannot be verified.
+5. Create a baseline feature inventory and test report.
+6. Recommend a backup or version-control branch before changes.
+7. Do not claim to have inspected files, built the project, run tests, or verified production behavior unless you actually did so.
+8. If source files are missing, list the exact missing materials and continue only with tasks supported by the available evidence.
+
+DELIVERABLE BEFORE IMPLEMENTATION
+Provide:
+- Separate web and Android audit reports.
+- Existing architecture and data-flow diagrams or clear text descriptions.
+- File-by-file proposed change list.
+- Risks and dependencies.
+- Data migration and rollback plan.
+- Firebase configuration requirements.
+- Security rules proposal.
+- Test plan and acceptance criteria.
+- Questions or missing materials that block safe implementation.
+
+Do not start implementation until I approve the audit and proposed changes.
+
+PHASE 1 — AUTHENTICATION
+Use Firebase Authentication if compatible with the audited architecture.
+
+Implement:
+- Email/password registration.
+- Email/password login.
+- Google sign-in on both platforms.
+- Email verification where appropriate.
+- Password reset and recovery.
+- Persistent, secure sessions.
+- Logout.
+- Clear loading, success, and recoverable error states.
+- Handling for invalid credentials, duplicate registration, offline conditions, expired sessions, and provider errors.
+- Secure account linking when the same person uses Google and email/password, where supported.
+- Separate development and production configuration.
+
+Never store plaintext passwords. Never hardcode private keys, service-account credentials, or secrets in client code. Use official SDKs and current supported sign-in flows.
+
+PHASE 2 — USER PROFILE
+Create a consistent profile experience across web and Android with:
+- Display name.
+- Email address and verification state where available.
+- Avatar/profile photo, if supported.
+- Edit profile details.
+- Accurate completed, pending, and overdue task statistics derived from real records.
+- Theme and notification preferences, preserving existing settings.
+- Logout.
+- Account deletion with explicit confirmation and appropriate data cleanup.
+
+Do not invent statistics or show fake profile information. Handle unavailable profile fields gracefully.
+
+PHASE 3 — CLOUD DATA AND SYNCHRONIZATION
+Use Cloud Firestore if compatible with the audited architecture, with a documented data model and user-specific security rules.
+
+Requirements:
+- Use a stable authenticated user ID to associate data with its owner.
+- Store user profiles, tasks, recurrence settings, completion history/remarks, and relevant preferences.
+- Preserve task IDs, due dates, time-zone semantics, recurrence rules, reminder configuration, timestamps, and completion history.
+- Support synchronization between web and native Android.
+- Keep offline task access where feasible using the existing local storage and Room database.
+- Handle offline creation, edits, deletion, reconnecting, retries, concurrent edits, duplicate writes, and conflict resolution.
+- Use stable IDs and idempotent operations so repeated sync attempts do not create duplicate tasks.
+- Use deletion markers or another documented strategy where necessary to prevent deleted tasks from reappearing.
+- Document which fields are server-authoritative and how conflicts are resolved.
+- Never rely on client-side UI filtering as the only access-control mechanism.
+- Enforce user isolation through backend/database security rules and test those rules.
+- Do not introduce a second database or sync framework without explaining why it is necessary.
+
+Cloud synchronization does not automatically guarantee that local notifications fire. Keep platform-specific reminder scheduling and permissions working independently.
+
+PHASE 4 — SAFE EXISTING-DATA MIGRATION
+Before migration:
+1. Identify and back up the existing local task records.
+2. Inspect IndexedDB/local storage for web and Room for Android, as applicable.
+3. Count and validate tasks, completion records, recurrence rules, reminders, and preferences.
+4. Detect malformed records, duplicate IDs, conflicting records, and schema differences.
+5. Present a migration preview and explain what will be uploaded and associated with the user's account.
+6. Require explicit user consent before associating existing local data with an account.
+7. Preserve stable IDs where possible and make migration idempotent.
+8. Verify imported record counts and important fields.
+9. Retain a recoverable local copy until migration is verified and the user confirms success.
+
+Never silently delete, overwrite, merge, or expose local tasks during sign-in, logout, account switching, or migration. An empty database must remain empty unless the user explicitly chooses to load demo data. Never restore sample tasks over real user data.
+
+PHASE 5 — WEB APPLICATION
+After auditing the actual web source:
+- Integrate authentication with the existing app structure and navigation.
+- Add login, registration, password recovery, profile, and account settings screens.
+- Preserve the current Chronos visual style and existing features.
+- Integrate cloud synchronization with the existing local storage carefully.
+- Handle loading, empty, offline, error, and signed-out states.
+- Prevent account data from appearing before authentication and ownership checks complete.
+- Test responsive layouts, accessibility, keyboard navigation, readable text, and browser refresh/session behavior.
+- Fix related date/time-zone, recurrence, duplicate-task, and empty-database issues only within the approved scope.
+
+Do not assume a framework or rewrite the app until the source confirms the architecture.
+
+PHASE 6 — NATIVE ANDROID APPLICATION
+After auditing the actual Android source:
+- Integrate Firebase Authentication and cloud data access with the existing Kotlin/Jetpack Compose architecture.
+- Preserve Room as the local source/cache where appropriate.
+- Preserve AlarmManager, BroadcastReceivers, notification behavior, boot handling, and required permissions.
+- Ensure task changes update local data, cloud data, and scheduled alarms consistently.
+- Handle Android notification permissions and exact-alarm restrictions according to supported Android versions.
+- Ensure account switching cannot display or upload another account's data.
+- Verify Gradle configuration, required resources, manifest entries, dependencies, and build wrapper.
+- Do not claim the project builds unless an actual build was run successfully.
+
+PHASE 7 — SECURITY AND PRIVACY
+- Define and test Firestore security rules so users can only access authorized records.
+- Validate ownership and required fields on writes.
+- Avoid logging passwords, authentication tokens, or sensitive user data.
+- Protect profile updates, account linking, and deletion.
+- Explain data retention and deletion behavior.
+- Do not put privileged service-account credentials in a web or Android client.
+- Use least-privilege access and appropriate Firebase configuration.
+- Identify any required privacy policy, data-safety disclosures, and account-deletion requirements relevant to a future Google Play release; do not claim legal or store compliance without evidence.
+
+PHASE 8 — TESTING AND REGRESSION
+Test the web app and Android app separately, then test cross-platform synchronization.
+
+Authentication:
+- Successful and failed email/password sign-up and login.
+- Google sign-in.
+- Email verification and password recovery.
+- Session persistence, logout, account switching, and provider linking.
+- Offline/network failure handling.
+
+Security:
+- Two or more accounts cannot access each other's tasks, remarks, profile, or preferences.
+- Direct database access is blocked when unauthorized.
+- Security rules are tested rather than merely reviewed.
+
+Tasks and synchronization:
+- Create, edit, complete, restore if supported, and delete tasks.
+- Recurring tasks do not duplicate on the same date.
+- Completion remarks remain linked to the correct task/completion event.
+- Changes sync across web and Android.
+- Offline edits sync after reconnection.
+- Concurrent edits follow the documented conflict policy.
+- Deleted records do not reappear unexpectedly.
+- Existing data is preserved and not duplicated during migration.
+- Empty storage does not trigger automatic demo-data restoration.
+
+Time and reminders:
+- Test time zones, daylight-saving behavior where applicable, date boundaries, and due dates.
+- Test reminder creation, editing, deletion, permission denial, app restart, device reboot, and relevant Android alarm restrictions.
+- Verify local notifications independently of cloud sync.
+
+Build and UI:
+- Run available automated tests, lint checks, and builds for both projects.
+- Test loading, empty, error, offline, and signed-out states.
+- Test small screens, accessibility labels, keyboard navigation, and text scaling.
+- Record every test not run and why.
+
+PHASE 9 — FINAL DELIVERY REPORT
+After implementation is explicitly authorized and completed, provide:
+1. Summary of changes.
+2. Exact files changed and the reason for each change.
+3. Updated architecture and data model.
+4. Firebase setup and provider configuration instructions.
+5. Security rules and their test results.
+6. Data migration results and verification counts.
+7. Web build/test results.
+8. Android build/test results.
+9. Cross-platform synchronization test results.
+10. Remaining limitations, required manual setup, and deployment steps.
+11. Rollback/recovery instructions.
+
+Never fabricate test results, builds, configuration, security, or deployment success. Clearly separate completed, partially completed, blocked, and untested items.
+
+WORKING RULES
+- Audit first; implement only after my explicit approval.
+- Preserve existing features and user data.
+- Do not rewrite working parts unnecessarily.
+- Do not deploy, publish, or alter production data without explicit authorization.
+- Prefer small, reviewable changes.
+- If a requirement conflicts with the existing architecture, explain the trade-off and propose a safe alternative before proceeding.
+- Do not promise “zero bugs”; instead use evidence-based testing, document known limitations, and fix regressions discovered.
+- Prioritize security, data integrity, account isolation, reliable synchronization, and backward compatibility over cosmetic changes.
+
+START NOW
+Begin with Phase 0. Inspect the available source materials and return the separate web and Android audit reports plus a file-by-file implementation plan. Do not modify source code until I approve the plan.

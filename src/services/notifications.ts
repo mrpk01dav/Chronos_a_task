@@ -1,4 +1,5 @@
 import { ActiveNotification, CategoryItem, RecurrenceRule, ReminderOffset, Task, UserPreferences } from '../types';
+import { localDateKey } from '../utils/dateUtils';
 
 // Web Audio API Synthesizer for offline chime & notification sound
 class SoundFX {
@@ -223,7 +224,7 @@ export function calculateNextOccurrence(task: Task): Task | null {
   }
 
   const [year, month, day] = task.dueDate.split('-').map(Number);
-  const nextDate = new Date(year, month - 1, day);
+  let nextDate = new Date(year, month - 1, day);
   const interval = recurrence.interval || 1;
 
   switch (recurrence.type) {
@@ -266,13 +267,26 @@ export function calculateNextOccurrence(task: Task): Task | null {
       break;
     }
 
-    case 'monthly':
-      nextDate.setMonth(nextDate.getMonth() + interval);
+    case 'monthly': {
+      // Month-end protection: avoid setMonth overflow (e.g. Jan 31 -> Feb 28, not March)
+      const targetMonthIndex = (month - 1) + interval;
+      const targetYear = year + Math.floor(targetMonthIndex / 12);
+      const normalizedMonthIndex = ((targetMonthIndex % 12) + 12) % 12;
+      // Maximum valid days in the target month (e.g., 28 in Feb 2026, 29 in Feb 2028, 30 in Apr)
+      const maxDaysInTargetMonth = new Date(targetYear, normalizedMonthIndex + 1, 0).getDate();
+      const clampedDay = Math.min(day, maxDaysInTargetMonth);
+      nextDate = new Date(targetYear, normalizedMonthIndex, clampedDay);
       break;
+    }
 
-    case 'yearly':
-      nextDate.setFullYear(nextDate.getFullYear() + interval);
+    case 'yearly': {
+      const targetYear = year + interval;
+      // Handle leap day: Feb 29 on non-leap year becomes Feb 28
+      const maxDays = new Date(targetYear, month, 0).getDate();
+      const clampedDay = Math.min(day, maxDays);
+      nextDate = new Date(targetYear, month - 1, clampedDay);
       break;
+    }
 
     case 'custom':
       nextDate.setDate(nextDate.getDate() + interval);
@@ -282,7 +296,7 @@ export function calculateNextOccurrence(task: Task): Task | null {
       return null;
   }
 
-  const nextDueDate = nextDate.toISOString().split('T')[0];
+  const nextDueDate = localDateKey(nextDate);
 
   // Check end date
   if (recurrence.endDate && nextDueDate > recurrence.endDate) {
@@ -311,6 +325,7 @@ export function calculateNextOccurrence(task: Task): Task | null {
     dueDate: nextDueDate,
     completed: false,
     completedAt: undefined,
+    completionRemark: undefined,
     subtasks: (task.subtasks || []).map((s) => ({ ...s, completed: false })),
     reminders: nextReminders,
     recurrence: {

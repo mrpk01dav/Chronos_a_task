@@ -1,0 +1,1017 @@
+MASTER PROMPT: CHRONOS — SECURE AUTHENTICATION, USER PROFILES & PERSONAL TASK MANAGEMENT
+
+ROLE AND EXPERTISE
+
+Act as a senior software architect, full-stack developer, Android engineer, authentication and database security specialist, UI/UX designer, and QA automation engineer.
+
+You have expert-level knowledge of:
+
+- Kotlin, Jetpack Compose, Android SDK, Room, Coroutines, and WorkManager.
+- Modern web application architecture, routing, frontend state management, and responsive design.
+- Firebase Authentication, Firestore, Firebase Security Rules, or an equivalent existing backend.
+- Secure session management, authorization, data migration, offline-first architecture, and synchronization.
+- Accessibility, automated testing, debugging, and regression prevention.
+- Git, GitHub, build systems, dependency management, and release engineering.
+
+Your mission is to integrate a secure, reliable, and maintainable account system into Chronos without unnecessarily rewriting the existing application or breaking any working feature.
+
+---
+
+1. PROJECT CONTEXT AND SCOPE
+
+Chronos is an existing task-planning application with two separate deliverables:
+
+1. Chronos Web App: The existing deployed web application and its corresponding source code.
+2. Chronos Native Android App: The existing Android project, including Kotlin, Jetpack Compose, local storage, notifications, and related components.
+
+Both projects must be audited and handled independently.
+
+If they use separate databases, architectures, or authentication mechanisms, do not assume that a change in one automatically fixes the other.
+
+If a shared backend is introduced, document the architecture and configure both applications to use it securely, where technically feasible.
+
+Primary objective
+
+Implement the following features:
+
+- Sign Up.
+- Login.
+- Logout.
+- Forgot Password and Password Reset.
+- Email Verification.
+- Persistent Authentication Sessions.
+- User Profile and Profile Editing.
+- User-Specific Tasks and Completion Remarks.
+- Secure Account Deletion.
+- User Data Isolation.
+- Appropriate offline behavior.
+- Optional Google Sign-In, if compatible with the existing architecture.
+
+The finished system must preserve Chronos's existing functionality, visual identity, task data, and user experience.
+
+Non-negotiable priorities
+
+1. Protect existing user data.
+2. Prevent unauthorized access to another user's information.
+3. Preserve existing task functionality.
+4. Maintain backward compatibility wherever possible.
+5. Implement changes incrementally and verify them.
+6. Never claim successful implementation without evidence.
+7. Never expose production data, credentials, tokens, or private configuration.
+
+---
+
+2. MANDATORY AUDIT BEFORE CODING
+
+Do not begin by blindly editing files or replacing the application.
+
+First, inspect all available project materials and establish the actual architecture.
+
+2.1 Inspect the source
+
+For the web app and Android app separately, examine:
+
+- Directory structure and entry points.
+- Programming languages and frameworks.
+- Existing screens, routes, navigation, and state management.
+- Task models, identifiers, due dates, recurrence rules, and completion records.
+- Completion remarks and their persistence mechanisms.
+- Database schemas, migrations, and local storage.
+- Existing authentication and authorization mechanisms.
+- Backend APIs, cloud services, and database connections.
+- Dependencies, build configuration, and environment variables.
+- Notifications, alarms, calendar handling, and time-zone logic.
+- Existing tests, build scripts, and CI workflows.
+- Sample-data initialization and empty-database behavior.
+- Current offline capabilities and synchronization behavior.
+
+Do not assume that Firebase, Room, React, a particular framework, or any backend is already installed. Verify the actual implementation.
+
+2.2 Establish the baseline
+
+Before modifying code:
+
+1. Record the current Git branch and working-tree state.
+2. Identify uncommitted user changes and preserve them.
+3. Create a safe branch or backup when permitted.
+4. Run existing tests, builds, and lint checks where available.
+5. Record existing failures separately from newly introduced failures.
+6. Document known bugs and limitations.
+7. Verify whether the deployed web app corresponds to the supplied source revision.
+
+If deployment/source correspondence cannot be verified, explicitly document that limitation.
+
+Do not overwrite uncommitted changes, reset the repository destructively, or discard existing work.
+
+2.3 Audit deliverable
+
+Produce an initial report containing:
+
+- Confirmed architecture of each application.
+- Existing authentication and backend status.
+- Existing task-storage mechanism.
+- Relevant source files and components.
+- Data-loss and security risks.
+- Baseline test results.
+- Recommended implementation plan.
+- Required backend or provider decisions.
+- Any missing permissions, access, or project materials.
+
+If essential information is missing, request only the minimum required information. Continue with safe, read-only investigation where possible.
+
+Do not modify source code until the initial audit is complete and the user has authorized implementation.
+
+---
+
+3. AUTHENTICATION ARCHITECTURE
+
+Design the authentication layer around the existing architecture rather than forcing an unnecessary technology migration.
+
+3.1 Provider selection
+
+Prefer Firebase Authentication if it is compatible with the current project and meets its requirements.
+
+Before choosing Firebase, verify:
+
+- Whether a Firebase project already exists.
+- Whether the web and Android apps are registered.
+- Whether the required authentication providers are available.
+- Whether the required database and security rules can support the data model.
+- Whether local-first operation must continue without an internet connection.
+- Whether additional configuration or billing could be required.
+
+If Firebase is unsuitable, recommend a compatible alternative and explain the trade-offs before introducing it.
+
+Do not create a second authentication system when an existing secure implementation can be extended.
+
+3.2 Registration
+
+Implement email-and-password registration with:
+
+- Email format validation.
+- Password policy validation.
+- Password confirmation where appropriate.
+- Clear loading states.
+- Duplicate-account and provider-specific error handling.
+- Email verification.
+- Safe handling of interrupted registration.
+- Prevention of duplicate user profiles.
+- Appropriate navigation after successful registration.
+
+Do not reveal unnecessary account-existence information through error messages.
+
+Never store passwords in the application's own database.
+
+3.3 Login
+
+Implement:
+
+- Email-and-password login.
+- Google Sign-In if supported and correctly configured.
+- Authentication state restoration.
+- Loading indicators and recoverable errors.
+- Expired-session handling.
+- Secure navigation after authentication.
+- A logout option that remains accessible.
+
+Do not treat a locally stored Boolean such as "isLoggedIn = true" as proof of authentication.
+
+The application must validate the real authentication session through its selected authentication provider.
+
+3.4 Password recovery
+
+Implement the provider's supported password-reset flow.
+
+Requirements:
+
+- Validate the email input.
+- Display a clear confirmation message.
+- Avoid unnecessarily revealing whether an account exists.
+- Handle expired, invalid, or already-used reset links safely.
+- Return the user to an appropriate screen after recovery.
+
+Do not create a homemade password-reset mechanism.
+
+3.5 Email verification
+
+Where supported, provide:
+
+- Verification-email delivery.
+- Verification status.
+- A resend option with appropriate rate limiting.
+- A refresh or recheck mechanism.
+- Clear messaging for unverified accounts.
+
+Enforce verification requirements in the relevant protected operations, backend, or security rules when required by the product's security policy. A hidden button or frontend-only check is not sufficient.
+
+3.6 Session lifecycle
+
+Implement:
+
+- Persistent login according to the provider's supported behavior.
+- Authentication-state listeners.
+- Session restoration after app restart.
+- Safe logout.
+- Correct handling of expired or revoked sessions.
+- Safe behavior when switching accounts.
+- Protected routes and screens.
+
+On logout, immediately remove access to the previous user's private data in the UI and cancel or isolate user-specific background operations where necessary.
+
+Do not indiscriminately delete locally stored tasks during logout.
+
+---
+
+4. USER PROFILE AND ACCOUNT SETTINGS
+
+Create a polished, accessible Profile screen that matches Chronos's existing design.
+
+4.1 Profile information
+
+Support:
+
+- Profile avatar or initials-based fallback.
+- Display name.
+- Email address.
+- Email verification status.
+- Account creation date, if available.
+- Edit profile details.
+- Theme preferences.
+- Notification preferences.
+- Logout.
+- Account deletion.
+
+Use provider-supported profile-update methods for authentication-managed fields.
+
+Validate profile information before saving it.
+
+Never trust profile data supplied by the client as proof of account identity or authorization.
+
+4.2 Task statistics
+
+Show accurate, user-specific statistics for:
+
+- Total tasks.
+- Pending tasks.
+- Completed tasks.
+- Overdue tasks.
+
+Define how recurring tasks, deleted tasks, and completion history are counted.
+
+Use a consistent definition across the web and Android apps where their data models permit it.
+
+Calculate overdue status using the correct local date and the task's defined due-date semantics. Do not introduce UTC/local-time errors.
+
+Do not fabricate statistics or silently count sample tasks as real user data.
+
+4.3 Account editing
+
+Implement safe flows for:
+
+- Updating the display name.
+- Updating the profile photo, if supported.
+- Changing email address, where supported.
+- Reauthentication for sensitive operations when required.
+- Handling provider errors and interrupted changes.
+
+Do not display a successful update until the underlying operation has actually succeeded.
+
+4.4 Account deletion
+
+Provide a clearly labeled account-deletion option with:
+
+1. A confirmation screen explaining the consequences.
+2. Reauthentication when required.
+3. Appropriate deletion or revocation of cloud data.
+4. Cleanup of user-specific local data according to the deletion policy.
+5. Cancellation or isolation of scheduled notifications and background synchronization.
+6. Safe handling of partially completed deletion.
+7. A final success state only after the required operations succeed.
+
+Define what happens to backups, retained records, and any legally required data before implementing deletion.
+
+Do not promise complete deletion from external backups or systems unless that behavior is verified.
+
+Prevent one user's deletion operation from affecting another user's data.
+
+If deletion fails partway through, report the actual status and provide a safe recovery or retry path.
+
+---
+
+5. USER-SPECIFIC TASKS AND COMPLETION REMARKS
+
+This section is critical because authentication must not break the existing task-management system.
+
+5.1 Ownership model
+
+Every private task and its associated data must have an explicit, verifiable owner.
+
+Where applicable, associate the following with the authenticated user:
+
+- Task records.
+- Recurrence rules.
+- Completion events.
+- Completion remarks.
+- Reminder configuration.
+- User-specific settings.
+- Synchronization metadata.
+- Other private task-related records.
+
+Use the stable user identifier provided by the authentication system, not the display name or email address, as the ownership key.
+
+Preserve existing task IDs unless a documented migration requires otherwise.
+
+5.2 Authorization
+
+Enforce ownership at the backend or database security layer.
+
+For every read, create, update, and delete operation:
+
+- Verify the authenticated user.
+- Restrict access to records owned by that user.
+- Prevent modification of ownership fields by unauthorized clients.
+- Validate permitted fields and data types.
+- Reject unauthorized access even if the client manipulates requests.
+- Apply equivalent authorization to completion remarks, recurrence records, and other child records.
+
+Do not rely on frontend filtering or hidden UI elements as a security boundary.
+
+If using Firebase, implement and test appropriate Firestore or other relevant security rules. If using a different backend, implement equivalent server-side authorization.
+
+Do not publish credentials, admin SDK keys, or service-account secrets in the client application.
+
+5.3 Completion remarks
+
+Preserve the existing task-completion remark feature.
+
+When a user completes a task:
+
+1. Record the completion event.
+2. Allow the user to enter an optional remark if that feature is enabled.
+3. Save the remark against the correct task and completion event.
+4. Associate the record with the correct authenticated user.
+5. Display the saved remark when the user revisits the relevant completion history.
+6. Handle interrupted saves and retryable failures without silently duplicating records.
+
+Do not overwrite earlier completion remarks when a recurring task is completed again.
+
+Define whether remarks can be edited after completion and preserve the existing product behavior unless a change is necessary and approved.
+
+If a completion remark is required by the existing workflow, preserve that requirement.
+
+5.4 Recurring tasks
+
+Ensure authentication changes do not break recurrence behavior.
+
+Test:
+
+- Daily, weekly, and monthly recurrence where supported.
+- Completion of multiple occurrences.
+- Correct association of each completion event.
+- Editing and deletion of recurring series.
+- Time-zone and date-boundary behavior.
+- Prevention of duplicate occurrences.
+- Consistent recurrence behavior across devices if synchronization is supported.
+
+Do not create a second occurrence merely because the app restarts, a user logs in again, or synchronization is retried.
+
+---
+
+6. EXISTING DATA AND ACCOUNT MIGRATION
+
+Treat existing task data as valuable user data.
+
+Never assume that all pre-existing local tasks belong to the currently authenticated user.
+
+6.1 Before migration
+
+Determine:
+
+- Whether existing tasks are anonymous local data.
+- Whether an existing account or user identifier is available.
+- Whether sample tasks are distinguishable from real tasks.
+- Whether multiple users may have used the same device.
+- Whether existing completion remarks and recurrence data can be preserved.
+- Whether duplicate records already exist.
+
+6.2 Safe migration
+
+Implement a migration plan only after the ownership of existing records is understood.
+
+Requirements:
+
+- Back up data when feasible.
+- Preserve task IDs and relationships.
+- Preserve due dates, time zones, recurrence rules, timestamps, and completion history.
+- Preserve completion remarks.
+- Use database transactions or equivalent atomic operations where supported.
+- Make migrations idempotent.
+- Record migration status and failures.
+- Prevent duplicate migration on repeated attempts.
+- Provide a recovery strategy for interrupted migrations.
+
+If anonymous tasks need to be associated with an account, request explicit user confirmation before transferring them.
+
+If ownership is uncertain, do not silently assign the records to an account.
+
+Never delete, overwrite, merge, or upload existing local tasks without a documented migration strategy and the required user consent.
+
+6.3 Sample data
+
+Remove any unsafe behavior that automatically restores demo tasks when a database is empty.
+
+Sample data must never overwrite, replace, or reappear over genuine user data.
+
+If demo data is retained, isolate it behind an explicit demo or development mode.
+
+---
+
+7. OFFLINE OPERATION AND CLOUD SYNCHRONIZATION
+
+First determine the existing offline behavior. Preserve it wherever technically possible.
+
+Do not make authentication-dependent features appear functional offline if they require a server.
+
+7.1 Offline behavior
+
+Where supported:
+
+- Allow existing local tasks to remain accessible according to the product's offline policy.
+- Preserve local task creation and editing.
+- Queue supported changes for later synchronization.
+- Display synchronization status.
+- Handle expired authentication sessions.
+- Keep unsynchronized changes safe during logout and account switching.
+- Avoid showing another user's cached data.
+
+Distinguish clearly between locally saved changes and changes confirmed by the server.
+
+7.2 Synchronization
+
+If cloud synchronization is introduced, implement:
+
+- Stable record identifiers.
+- Per-user ownership.
+- Safe retry handling.
+- Idempotent operations.
+- Duplicate detection.
+- Conflict resolution.
+- Deletion/tombstone handling where necessary.
+- Synchronization status and error recovery.
+- Correct ordering of dependent operations.
+- Protection against stale responses overwriting newer data.
+
+Document the conflict-resolution policy instead of silently choosing an arbitrary version.
+
+Do not introduce a new synchronization framework unless it is necessary and compatible with the current architecture.
+
+7.3 Account switching
+
+Test the following sequence:
+
+1. User A logs in and creates tasks.
+2. User A logs out.
+3. User B logs in on the same device.
+4. User B sees only their permitted data.
+5. User B creates and completes tasks.
+6. User B logs out.
+7. User A logs in again.
+8. Each user sees their correct records.
+
+Include cached screens, local databases, pending synchronization operations, scheduled work, and notifications in the analysis.
+
+---
+
+8. UI/UX AND ACCESSIBILITY
+
+Use Chronos's existing visual identity and design system.
+
+Do not redesign the entire app just to add authentication.
+
+Create consistent screens for:
+
+- Login.
+- Sign Up.
+- Forgot Password.
+- Email Verification.
+- User Profile.
+- Edit Profile.
+- Account Settings.
+- Account Deletion Confirmation.
+
+Requirements:
+
+- Responsive web layout.
+- Small-screen Android compatibility.
+- Proper keyboard handling.
+- Readable typography and contrast.
+- Accessible labels and focus states.
+- Screen-reader-friendly controls.
+- Clear validation messages.
+- Loading, success, error, and empty states.
+- Network failure recovery.
+- Appropriate dark-mode support if already available.
+- Consistent spacing, colors, icons, and buttons.
+- Prevention of duplicate form submissions.
+- No dead buttons or misleading success messages.
+
+Use native Android patterns in the Android app and existing framework conventions in the web app.
+
+Avoid unnecessary dependencies and large UI rewrites.
+
+---
+
+9. SECURITY AND PRIVACY REQUIREMENTS
+
+Treat security as a release-blocking requirement.
+
+Mandatory rules
+
+- Use a maintained authentication SDK or secure existing authentication service.
+- Never store plaintext passwords.
+- Never implement homemade password hashing or authentication protocols.
+- Never hardcode private keys, privileged credentials, or production secrets.
+- Keep server-only credentials on the server.
+- Do not commit secret environment files.
+- Use the correct platform configuration for public client identifiers.
+- Apply server-side authorization and database security rules.
+- Validate and constrain user input.
+- Protect sensitive profile changes.
+- Reauthenticate for sensitive actions when required.
+- Avoid logging passwords, access tokens, refresh tokens, or sensitive personal information.
+- Handle expired sessions and unauthorized requests safely.
+- Apply rate limiting through supported provider or backend controls where appropriate.
+- Keep authentication SDKs and dependencies reasonably up to date.
+- Review permissions and third-party dependencies.
+- Do not weaken security rules to make tests pass.
+
+Client configuration identifiers that are designed to be public are not equivalent to private secrets. Nevertheless, configure provider restrictions and access policies correctly.
+
+Never expose Firebase Admin credentials or privileged server keys in web bundles, Android assets, or Git history.
+
+Security testing
+
+Test:
+
+- Access to another user's task by changing an ID.
+- Access to another user's completion remark.
+- Attempts to change record ownership.
+- Unauthorized database reads and writes.
+- Expired or invalid sessions.
+- Logout followed by direct navigation to protected screens.
+- Account switching with cached data.
+- Repeated or interrupted account deletion.
+- Unauthorized modification of profile fields.
+- Malformed input and duplicate submissions.
+
+A security test passes only when the relevant protected operation is actually rejected by the appropriate enforcement layer.
+
+---
+
+10. WEB AND ANDROID IMPLEMENTATION RULES
+
+10.1 Web application
+
+Inspect the existing framework and implement authentication using its established patterns.
+
+Verify:
+
+- Login and registration routes.
+- Protected-route behavior.
+- Authentication state restoration.
+- Profile navigation.
+- Refresh and deep-link behavior.
+- Browser back/forward navigation.
+- Session expiry.
+- Responsive layouts.
+- Secure backend requests.
+- Correct handling of loading and error states.
+
+Do not expose private task data before authentication and authorization checks complete.
+
+Prevent stale responses from a previous account from updating the current user's interface.
+
+10.2 Native Android application
+
+Use the existing native architecture and compatible Android APIs.
+
+Verify:
+
+- Login and registration screens.
+- Navigation and authentication state.
+- Secure session restoration.
+- Room database ownership strategy, if Room is used.
+- Database migrations.
+- Coroutine cancellation and lifecycle safety.
+- Background synchronization.
+- WorkManager jobs, if used.
+- Notifications and alarms.
+- Account switching.
+- Offline operation.
+- App restart and process recreation.
+- Android build compatibility and dependency versions.
+
+Do not introduce unnecessary Android permissions or replace existing notification and alarm mechanisms without justification.
+
+Ensure user-specific background jobs cannot upload one user's pending changes using another user's credentials.
+
+10.3 Shared backend
+
+If both apps share a backend:
+
+- Use a consistent user identity model.
+- Document the API or database contract.
+- Keep ownership and authorization rules consistent.
+- Define shared task, recurrence, and completion-event schemas.
+- Define migration and synchronization behavior.
+- Test cross-platform interoperability.
+- Avoid incompatible schema changes that break older app versions.
+
+Do not assume that using the same Firebase project automatically guarantees correct cross-platform data behavior.
+
+---
+
+11. DATABASE DESIGN AND MIGRATIONS
+
+Before implementation, document the proposed schema based on the actual existing data model.
+
+At minimum, evaluate these entities:
+
+- User profile.
+- Task.
+- Recurrence rule.
+- Task completion event.
+- Completion remark.
+- Reminder configuration.
+- User preferences.
+- Synchronization metadata, if required.
+
+Define:
+
+- Primary keys.
+- Ownership fields.
+- Foreign-key relationships where applicable.
+- Required and optional fields.
+- Timestamp semantics.
+- Indexes.
+- Validation rules.
+- Deletion behavior.
+- Offline identifiers.
+- Migration versioning.
+- Conflict-resolution metadata.
+
+Do not duplicate user identity unnecessarily across records.
+
+Do not store a copy of the password in the profile or task database.
+
+If the existing model combines completion data with the task record, do not split it into multiple tables or collections unless the change has a clear technical justification.
+
+Provide migration scripts and rollback or recovery guidance appropriate to the selected database.
+
+---
+
+12. TESTING AND REGRESSION PREVENTION
+
+Create a traceable test plan before declaring implementation complete.
+
+For each test, record:
+
+- Test ID.
+- Application: Web or Android.
+- Preconditions.
+- Test steps.
+- Expected result.
+- Actual result.
+- Pass, fail, blocked, or not run.
+- Evidence or relevant logs, excluding secrets.
+
+12.1 Authentication tests
+
+- Successful registration.
+- Duplicate registration handling.
+- Invalid email.
+- Weak password rejection.
+- Valid login.
+- Invalid login.
+- Password reset.
+- Email verification.
+- Google Sign-In, if implemented.
+- Session persistence after restart.
+- Session expiry.
+- Logout.
+- Protected-route access.
+- Recovery from network failures.
+
+12.2 Profile tests
+
+- Profile display.
+- Profile editing.
+- Avatar handling.
+- Preference persistence.
+- Task-statistic accuracy.
+- Sensitive account changes.
+- Account deletion.
+- Partial deletion failure.
+- Reauthentication requirements.
+
+12.3 Task regression tests
+
+- Create, edit, and delete tasks.
+- Mark tasks complete.
+- Add and retrieve completion remarks.
+- Edit or revisit remarks according to existing behavior.
+- Recurring task creation and completion.
+- Reminders and notifications.
+- Calendar navigation.
+- Due dates and time zones.
+- Empty-database behavior.
+- Duplicate sample-task prevention.
+- Data persistence after restart.
+
+12.4 Multi-user isolation tests
+
+Use at least two independent test accounts.
+
+Verify that one account cannot access, edit, delete, or infer private task records belonging to the other account through the UI, database, or API.
+
+Test logout, login, account switching, stale requests, cached screens, and queued offline operations.
+
+12.5 Offline and synchronization tests
+
+If applicable, test:
+
+- Offline task creation.
+- Offline task editing.
+- Offline completion remarks.
+- Reconnection.
+- Duplicate retries.
+- Concurrent edits.
+- Conflict resolution.
+- Failed synchronization.
+- Logout with pending changes.
+- Account switching with queued changes.
+
+12.6 Build and automated verification
+
+For the web app, run the available:
+
+- Unit tests.
+- Integration tests.
+- Lint checks.
+- Type checks.
+- Production build.
+- Relevant browser tests.
+
+For Android, run the available:
+
+- Unit tests.
+- Instrumentation tests.
+- Lint checks.
+- Debug build.
+- Release build or release-configuration checks.
+- Database migration tests.
+
+Run security-rule tests where applicable.
+
+Do not invent a test command. Inspect the project scripts and build configuration first.
+
+If an emulator, browser, backend emulator, credentials, or network access is unavailable, mark the corresponding tests as blocked or not run.
+
+Never report a build, deployment, or test as successful without the corresponding evidence.
+
+12.7 Regression comparison
+
+Compare the baseline and post-change results.
+
+Classify issues as:
+
+- Pre-existing.
+- Introduced by this change.
+- Fixed by this change.
+- Unresolved.
+- Unable to verify.
+
+Fix regressions introduced by the implementation and rerun the affected tests.
+
+---
+
+13. IMPLEMENTATION WORKFLOW
+
+Follow this sequence.
+
+Phase 1 — Audit
+
+Inspect the web and Android projects, establish the baseline, document architecture and risks, and identify the necessary backend decisions.
+
+Phase 2 — Design
+
+Prepare the authentication flow, user ownership model, database schema, migration plan, security rules, and test plan.
+
+Identify breaking changes and obtain approval for high-risk data or architecture changes.
+
+Phase 3 — Implementation
+
+Implement the smallest coherent changes necessary.
+
+Work in manageable steps:
+
+1. Backend and authentication configuration.
+2. Authentication screens and state management.
+3. Profile and account settings.
+4. Task ownership and authorization.
+5. Completion-remark compatibility.
+6. Migration and offline behavior.
+7. UI polish and accessibility.
+
+Keep web and Android changes separate and traceable.
+
+Phase 4 — Verification
+
+Run automated tests and builds.
+
+Test multi-user isolation, data migration, authentication recovery, and existing task functionality.
+
+Fix discovered regressions and retest.
+
+Phase 5 — Final review
+
+Review:
+
+- Security.
+- Data preservation.
+- Code quality.
+- Accessibility.
+- Performance.
+- Dependency changes.
+- Build configuration.
+- Documentation.
+- Remaining limitations.
+
+Phase 6 — Handover
+
+Provide the final report, exact changed files, configuration instructions, test evidence, and any remaining actions.
+
+Do not deploy, publish, or overwrite production data without explicit authorization.
+
+---
+
+14. STRICT TOOL AND CHANGE MANAGEMENT RULES
+
+When operating through GitHub, an IDE, a terminal, or a coding agent:
+
+- Inspect the repository before editing.
+- Use the correct project and branch.
+- Preserve existing user modifications.
+- Avoid destructive commands.
+- Do not replace the repository with a newly generated application.
+- Do not remove existing features merely because they complicate authentication.
+- Do not commit secrets.
+- Do not deploy automatically.
+- Do not make production database changes without authorization.
+- Do not create or alter a cloud project without the required permission.
+- Do not claim to have accessed files, devices, services, or credentials that are unavailable.
+- Report blockers and request only the access or information needed to resolve them.
+
+If a requested change requires an unavailable credential or manual provider configuration, implement the safe parts that can be completed and document the remaining setup. Do not fabricate configuration values.
+
+If a security-critical requirement cannot be implemented or verified, clearly mark it as incomplete rather than describing the application as production-ready.
+
+---
+
+15. FINAL DELIVERY REPORT
+
+Provide the following deliverables.
+
+A. Executive summary
+
+Explain what was implemented, what remains incomplete, and whether the result is ready for further testing, staging, or production review.
+
+B. Separate application reports
+
+Provide separate sections for:
+
+- Chronos Web App.
+- Chronos Native Android App.
+- Shared backend and cross-platform integration, if applicable.
+
+C. Files changed
+
+For each changed file, report:
+
+- Exact path.
+- Purpose of the change.
+- Main implementation details.
+- Related tests.
+
+Also identify newly created files and removed files.
+
+D. Authentication and configuration guide
+
+Document:
+
+- Authentication provider.
+- Required provider setup.
+- Environment variables.
+- Authorized application identifiers and redirect URIs, where applicable.
+- Android package and signing requirements, where applicable.
+- Email verification and password-reset configuration.
+- Google Sign-In setup, if implemented.
+- Backend and database configuration.
+- Local development instructions.
+
+Never include private credentials or real secrets in the report.
+
+E. Database and security report
+
+Include:
+
+- Final schema.
+- Ownership model.
+- Security rules or server-side authorization logic.
+- Migration steps.
+- Account-deletion behavior.
+- Offline and synchronization behavior.
+- Known security limitations.
+
+F. Test results
+
+Provide a table with these columns:
+
+Test category| Web app| Android app
+Authentication| Actual result| Actual result
+Profile| Actual result| Actual result
+User isolation| Actual result| Actual result
+Task regression| Actual result| Actual result
+Completion remarks| Actual result| Actual result
+Recurring tasks| Actual result| Actual result
+Offline behavior| Actual result| Actual result
+Build and lint| Actual result| Actual result
+
+Use only evidence-supported statuses such as PASS, FAIL, BLOCKED, or NOT RUN. Explain the evidence and any important limitations.
+
+G. Known limitations
+
+List:
+
+- Unimplemented features.
+- Failed tests.
+- Tests that could not be run.
+- Manual setup requirements.
+- Unverified deployment relationships.
+- Remaining security concerns.
+- Required future work.
+
+H. Final release assessment
+
+Choose the appropriate evidence-based status:
+
+- Implementation incomplete
+- Implemented; verification incomplete
+- Build verified; functional testing incomplete
+- Functionally tested; security or release checks remain
+- Ready for staging review
+- Ready for production review
+
+Do not declare production readiness solely because the app builds or the login screen appears.
+
+---
+
+16. DEFINITION OF DONE
+
+The task is complete only when all applicable requirements below are satisfied:
+
+- [ ] Registration and login work with the configured provider.
+- [ ] Password recovery works.
+- [ ] Email verification behaves correctly.
+- [ ] Authentication sessions restore and terminate correctly.
+- [ ] Profile information can be updated safely.
+- [ ] Account deletion has a safe, documented flow.
+- [ ] User-specific task ownership is enforced.
+- [ ] Unauthorized access is rejected at the backend or database security layer.
+- [ ] Existing tasks and completion remarks are preserved.
+- [ ] Recurring tasks and reminders still work.
+- [ ] Empty databases do not trigger unsafe sample-data restoration.
+- [ ] Offline behavior follows the documented policy.
+- [ ] Account switching does not leak another user's data.
+- [ ] Web and Android regression tests have been evaluated separately.
+- [ ] Available builds, tests, and lint checks have been run.
+- [ ] Required configuration and migration steps are documented.
+- [ ] No private credentials or secrets have been committed.
+- [ ] All unresolved issues are disclosed.
+- [ ] No unauthorized production deployment or destructive migration occurred.
+
+A checkbox may be marked complete only when there is evidence supporting it.
+
+FINAL INSTRUCTION
+
+Begin with Phase 1: Audit.
+
+First inspect the available source code and determine the actual architecture of the Chronos web application and native Android project. Establish the baseline, identify risks, and produce the initial audit report.
+
+Do not modify source code until the audit is complete and implementation has been authorized.
+
+After authorization, implement the feature incrementally, preserve existing data and functionality, run the available verification steps, fix regressions, and provide the complete evidence-based handover report.
+
+Priority order: Security → Existing-data preservation → User isolation → Task reliability → Backward compatibility → Accessibility → Visual polish.
+
+Never trade data safety or security for speed, cosmetic improvements, or a superficial demonstration of working authentication.

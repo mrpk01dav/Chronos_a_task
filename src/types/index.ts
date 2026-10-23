@@ -38,6 +38,7 @@ export interface RecurrenceRule {
 
 export interface Task {
   id: string;
+  userId?: string; // Stable user identifier for account ownership
   title: string;
   description: string;
   categoryId: string;
@@ -47,6 +48,7 @@ export interface Task {
   estimatedDuration: number; // in minutes
   completed: boolean;
   completedAt?: string; // ISO timestamp
+  completionRemark?: string; // Progress remark added on completion
   pinned: boolean;
   subtasks: Subtask[];
   notes: string;
@@ -54,6 +56,30 @@ export interface Task {
   reminders: TaskReminder[];
   createdAt: string;
   updatedAt: string;
+}
+
+export interface UserProfile {
+  id: string;
+  email: string;
+  displayName: string;
+  photoUrl?: string;
+  isEmailVerified: boolean;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export interface UserAccountRecord extends UserProfile {
+  passwordHashHex: string;
+  saltHex: string;
+  resetToken?: string;
+  resetTokenExpiry?: string;
+  verificationCode?: string;
+}
+
+export interface AuthSession {
+  token: string;
+  user: UserProfile;
+  expiresAt: string;
 }
 
 export interface Goal {

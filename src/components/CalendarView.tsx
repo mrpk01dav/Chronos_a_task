@@ -11,6 +11,7 @@ import {
   CalendarRange
 } from 'lucide-react';
 import { CategoryItem, Priority, Task, UserPreferences } from '../types';
+import { localDateKey } from '../utils/dateUtils';
 
 interface CalendarViewProps {
   tasks: Task[];
@@ -34,11 +35,11 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const [layout, setLayout] = useState<CalendarLayout>('month');
   const [currentDate, setCurrentDate] = useState(new Date());
   const [selectedDateStr, setSelectedDateStr] = useState<string>(
-    new Date().toISOString().split('T')[0]
+    localDateKey()
   );
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateKey();
 
   // Group tasks by date string
   const tasksByDate = useMemo(() => {
@@ -67,7 +68,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
   const jumpToToday = () => {
     const today = new Date();
     setCurrentDate(today);
-    setSelectedDateStr(today.toISOString().split('T')[0]);
+    setSelectedDateStr(localDateKey(today));
   };
 
   // Month Grid Calculation
@@ -101,7 +102,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const d = prevMonthLastDay - i;
       const prevDate = new Date(year, month - 1, d);
       days.push({
-        dateStr: prevDate.toISOString().split('T')[0],
+        dateStr: localDateKey(prevDate),
         dayNumber: d,
         isCurrentMonth: false,
         isToday: false,
@@ -111,7 +112,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     // Current month days
     for (let d = 1; d <= daysInMonth; d++) {
       const thisDate = new Date(year, month, d);
-      const str = thisDate.toISOString().split('T')[0];
+      const str = localDateKey(thisDate);
       days.push({
         dateStr: str,
         dayNumber: d,
@@ -125,7 +126,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     for (let i = 1; i <= remaining; i++) {
       const nextDate = new Date(year, month + 1, i);
       days.push({
-        dateStr: nextDate.toISOString().split('T')[0],
+        dateStr: localDateKey(nextDate),
         dayNumber: i,
         isCurrentMonth: false,
         isToday: false,
@@ -151,7 +152,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
       const cur = new Date(startOfWeek);
       cur.setDate(startOfWeek.getDate() + i);
       days.push({
-        dateStr: cur.toISOString().split('T')[0],
+        dateStr: localDateKey(cur),
         dayName: cur.toLocaleDateString('en-US', { weekday: 'short' }),
         dayNumber: cur.getDate(),
       });
@@ -168,7 +169,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-32">
       {/* Calendar Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>

@@ -7,8 +7,6 @@ import {
   ChevronUp, 
   Volume2, 
   VolumeX, 
-  BatteryCharging, 
-  Wifi, 
   ShieldAlert, 
   Plus, 
   Check, 
@@ -17,6 +15,7 @@ import {
   ExternalLink
 } from 'lucide-react';
 import { ActiveNotification, Task, UserPreferences } from '../types';
+import { localDateKey, isTaskOverdue } from '../utils/dateUtils';
 
 interface AndroidNotificationBarProps {
   notifications: ActiveNotification[];
@@ -65,11 +64,11 @@ export const AndroidNotificationBar: React.FC<AndroidNotificationBarProps> = ({
   }, [preferences.timeFormat]);
 
   // Today calculations
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateKey();
   const todayTasks = tasks.filter((t) => t.dueDate === todayStr);
   const pendingCount = todayTasks.filter((t) => !t.completed).length;
   const completedCount = todayTasks.filter((t) => t.completed).length;
-  const overdueCount = tasks.filter((t) => !t.completed && t.dueDate < todayStr).length;
+  const overdueCount = tasks.filter((t) => isTaskOverdue(t)).length;
 
   const totalNotifs = notifications.length + (preferences.persistentTodayNotification && pendingCount > 0 ? 1 : 0);
 
@@ -79,13 +78,16 @@ export const AndroidNotificationBar: React.FC<AndroidNotificationBarProps> = ({
       <div 
         onClick={() => setIsShadeOpen(!isShadeOpen)}
         className="w-full bg-[#07080c] px-4 py-1.5 flex items-center justify-between text-slate-400 text-[11px] font-mono tracking-tight select-none border-b border-white/[0.04] cursor-pointer hover:bg-slate-900/60 transition"
+        role="button"
+        aria-expanded={isShadeOpen}
+        aria-label="Toggle Android notification shade"
       >
         <div className="flex items-center gap-2">
           <span className="font-semibold text-slate-200">{currentTime || '12:00'}</span>
           {/* Notification Icons in Status Bar */}
           <div className="flex items-center gap-1.5 ml-1">
             {totalNotifs > 0 && (
-              <span className="relative flex h-2 w-2">
+              <span className="relative flex h-2 w-2" title={`${totalNotifs} active alert${totalNotifs > 1 ? 's' : ''}`}>
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-indigo-400 opacity-75"></span>
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-indigo-500"></span>
               </span>
@@ -105,17 +107,19 @@ export const AndroidNotificationBar: React.FC<AndroidNotificationBarProps> = ({
               e.stopPropagation();
               onToggleSound();
             }}
-            className="hover:text-white transition"
+            className="hover:text-white transition p-1"
             title={preferences.soundEnabled ? 'Chime sound ON' : 'Chime sound MUTED'}
+            aria-label={preferences.soundEnabled ? 'Mute notification sound' : 'Unmute notification sound'}
           >
-            {preferences.soundEnabled ? <Volume2 className="w-3 h-3 text-slate-400" /> : <VolumeX className="w-3 h-3 text-slate-600" />}
+            {preferences.soundEnabled ? <Volume2 className="w-3.5 h-3.5 text-slate-400" /> : <VolumeX className="w-3.5 h-3.5 text-slate-600" />}
           </button>
-          <Wifi className="w-3 h-3 text-slate-300" />
-          <div className="flex items-center gap-1 text-[10px]">
-            <span>94%</span>
-            <BatteryCharging className="w-3.5 h-3.5 text-emerald-400" />
-          </div>
-          <span className="text-[10px] text-slate-500">
+          {totalNotifs > 0 && (
+            <span className="px-1.5 py-0.2 text-[10px] bg-indigo-500/20 text-indigo-300 rounded font-sans">
+              {totalNotifs}
+            </span>
+          )}
+          <span className="text-[10px] text-slate-500 flex items-center gap-1">
+            <span className="text-[10px] font-sans text-slate-400">Shade</span>
             {isShadeOpen ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
           </span>
         </div>

@@ -297,6 +297,7 @@ data class TaskEntity(
     val estimatedDurationMinutes: Int = 30,
     val isCompleted: Boolean = false,
     val completedAt: Long? = null,
+    val completionRemark: String? = null,
     val isPinned: Boolean = false,
     val subtasksJson: String = "[]",
     val recurrenceType: String = "none", // none, daily, weekdays, weekly, monthly, yearly, custom

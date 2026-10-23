@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { CategoryItem, Priority, RecurrenceRule, RecurrenceType, ReminderOffset, Subtask, Task, TaskReminder } from '../types';
 import { NotificationService } from '../services/notifications';
+import { localDateKey } from '../utils/dateUtils';
 
 interface TaskEditorModalProps {
   isOpen: boolean;
@@ -44,6 +45,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const [estimatedDuration, setEstimatedDuration] = useState(30);
   const [pinned, setPinned] = useState(false);
   const [notes, setNotes] = useState('');
+  const [completionRemark, setCompletionRemark] = useState('');
 
   // Subtasks
   const [subtasks, setSubtasks] = useState<Subtask[]>([]);
@@ -75,6 +77,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       setEstimatedDuration(taskToEdit.estimatedDuration || 30);
       setPinned(taskToEdit.pinned || false);
       setNotes(taskToEdit.notes || '');
+      setCompletionRemark(taskToEdit.completionRemark || '');
       setSubtasks(taskToEdit.subtasks || []);
       
       const rec = taskToEdit.recurrence || { type: 'none' };
@@ -87,7 +90,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       setReminders(taskToEdit.reminders || []);
     } else {
       // Create defaults
-      const today = new Date().toISOString().split('T')[0];
+      const today = localDateKey();
       setTitle('');
       setDescription('');
       setCategoryId(categories[0]?.id || 'assignments');
@@ -122,6 +125,18 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
     }
     setError('');
   }, [taskToEdit, isOpen, categories, defaultReminderOffset]);
+
+  // Handle Escape key to close modal
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        onClose();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -210,6 +225,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
       estimatedDuration: Number(estimatedDuration) || 0,
       completed: taskToEdit ? taskToEdit.completed : false,
       completedAt: taskToEdit?.completedAt,
+      completionRemark: taskToEdit?.completed ? (completionRemark.trim() || undefined) : undefined,
       pinned,
       subtasks,
       notes: notes.trim(),
@@ -227,21 +243,27 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
   const setQuickDate = (offsetDays: number) => {
     const d = new Date();
     d.setDate(d.getDate() + offsetDays);
-    setDueDate(d.toISOString().split('T')[0]);
+    setDueDate(localDateKey(d));
   };
 
   const weekdayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="task-editor-title"
+    >
       <div className="w-full max-w-lg rounded-2xl bg-[#121420] border border-[#25293d] p-5 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-3 border-b border-white/10">
-          <h2 className="text-base font-bold text-white flex items-center gap-2">
+          <h2 id="task-editor-title" className="text-base font-bold text-white flex items-center gap-2">
             {taskToEdit ? 'Edit Task' : 'Create New Task'}
           </h2>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+            aria-label="Close task editor"
           >
             <X className="w-5 h-5" />
           </button>
@@ -273,7 +295,7 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
               type="text"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. Complete Operating Systems Lab Assignment 4"
+              placeholder="e.g. Study for exam, workout, submit assignment..."
               className="w-full px-3 py-2.5 rounded-xl bg-[#181b2b] border border-white/10 text-white placeholder-slate-500 focus:outline-none focus:border-indigo-500 text-sm"
               autoFocus
             />
@@ -621,6 +643,26 @@ export const TaskEditorModal: React.FC<TaskEditorModalProps> = ({
               </div>
             )}
           </div>
+
+          {/* Completion Remark (when editing a completed task) */}
+          {taskToEdit?.completed && (
+            <div className="space-y-1.5 p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20">
+              <label className="font-semibold text-emerald-300 flex items-center gap-1.5 text-xs">
+                <Check className="w-3.5 h-3.5 text-emerald-400" />
+                Completion Progress Remark
+              </label>
+              <textarea
+                value={completionRemark}
+                onChange={(e) => setCompletionRemark(e.target.value)}
+                placeholder="What did you accomplish? What did you learn? Any challenges?"
+                rows={3}
+                className="w-full px-3 py-2 rounded-xl bg-[#11131e] border border-emerald-500/30 text-white placeholder-slate-500 focus:outline-none focus:border-emerald-500 text-xs"
+              />
+              <span className="text-[10px] text-emerald-400/80 block">
+                Review or edit the progress remark saved for this completed task.
+              </span>
+            </div>
+          )}
 
           {/* Notes */}
           <div className="space-y-1">

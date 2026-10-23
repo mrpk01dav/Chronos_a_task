@@ -31,10 +31,24 @@ export const AndroidPermissionsModal: React.FC<AndroidPermissionsModalProps> = (
 }) => {
   const [activeTab, setActiveTab] = useState<'permissions' | 'battery' | 'oem'>('permissions');
 
+  React.useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
+
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto">
+    <div 
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="android-permissions-title"
+    >
       <div className="w-full max-w-lg rounded-2xl bg-[#12141f] border border-[#24283b] p-6 shadow-2xl text-slate-100 animate-in fade-in zoom-in-95 duration-150">
         <div className="flex items-center justify-between pb-4 border-b border-white/10">
           <div className="flex items-center gap-2.5">
@@ -42,13 +56,14 @@ export const AndroidPermissionsModal: React.FC<AndroidPermissionsModalProps> = (
               <Bell className="w-4 h-4" />
             </div>
             <div>
-              <h2 className="text-base font-bold text-white">Android Notification & Alarm Settings</h2>
+              <h2 id="android-permissions-title" className="text-base font-bold text-white">Android Notification & Alarm Settings</h2>
               <p className="text-xs text-slate-400">Ensure reliable alarms, exact timing & background alerts</p>
             </div>
           </div>
           <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-1 rounded-lg transition"
+            aria-label="Close settings dialog"
           >
             <X className="w-5 h-5" />
           </button>

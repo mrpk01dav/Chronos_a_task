@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Smartphone, 
   Code2, 
@@ -17,7 +17,8 @@ import {
   Play,
   RotateCcw,
   BatteryCharging,
-  Package
+  Package,
+  AlertTriangle
 } from 'lucide-react';
 import { generateAndroidProjectZip, getAndroidProjectFiles } from '../services/androidProjectGenerator';
 
@@ -35,6 +36,15 @@ export const AndroidGuideModal: React.FC<AndroidGuideModalProps> = ({ isOpen, on
   // Kotlin source files for the explorer
   const androidFiles = getAndroidProjectFiles();
   const [selectedFilePath, setSelectedFilePath] = useState<string>(androidFiles[3]?.path || 'app/build.gradle.kts');
+
+  useEffect(() => {
+    if (!isOpen) return;
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose();
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isOpen, onClose]);
 
   if (!isOpen) return null;
 
@@ -81,9 +91,10 @@ export const AndroidGuideModal: React.FC<AndroidGuideModalProps> = ({ isOpen, on
               <p className="text-xs text-slate-400">Complete Android Studio Project · Room · AlarmManager · BootReceiver</p>
             </div>
           </div>
-          <button
+        <button
             onClick={onClose}
             className="text-slate-400 hover:text-white p-1 rounded-xl hover:bg-white/5 transition"
+            aria-label="Close Android guide"
           >
             <X className="w-5 h-5" />
           </button>
@@ -144,6 +155,14 @@ export const AndroidGuideModal: React.FC<AndroidGuideModalProps> = ({ isOpen, on
           {/* TAB 1: ZIP EXPORT */}
           {tab === 'zip_export' && (
             <div className="space-y-4">
+              {/* Honest Environment Notice */}
+              <div className="p-3.5 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-200/90 text-xs flex items-start gap-2.5">
+                <AlertTriangle className="w-4 h-4 text-amber-400 shrink-0 mt-0.5" />
+                <p className="leading-relaxed">
+                  <strong>Environment Notice:</strong> This ZIP provides the complete native Kotlin & Jetpack Compose codebase. Web-based sandbox runtimes do not include an Android SDK or Gradle build toolchain, so compilation, APK packaging, and background alarm verification are executed locally on your computer with Android Studio.
+                </p>
+              </div>
+
               <div className="p-4 rounded-2xl bg-gradient-to-r from-indigo-900/30 to-purple-900/30 border border-indigo-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div>
                   <h3 className="text-sm font-bold text-white flex items-center gap-2">
@@ -151,7 +170,7 @@ export const AndroidGuideModal: React.FC<AndroidGuideModalProps> = ({ isOpen, on
                     Download Native Kotlin Android Studio Project
                   </h3>
                   <p className="text-xs text-slate-300 mt-1 leading-relaxed">
-                    Download the complete, compilable Android Studio Gradle project configured with Jetpack Compose, Room Database 2.6+, AlarmManager exact scheduling, BootReceiver, and Material 3 Dark theme.
+                    Download the complete Android Studio Gradle project configured with Jetpack Compose, Room Database 2.6+, AlarmManager exact scheduling, BootReceiver, and Material 3 Dark theme.
                   </p>
                 </div>
 

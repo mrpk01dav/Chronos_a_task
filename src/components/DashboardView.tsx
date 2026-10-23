@@ -17,6 +17,7 @@ import {
   Zap
 } from 'lucide-react';
 import { CategoryItem, Goal, Task, UserPreferences } from '../types';
+import { localDateKey, isTaskOverdue, calculateRealStreak, offsetLocalDate } from '../utils/dateUtils';
 
 interface DashboardViewProps {
   tasks: Task[];
@@ -42,13 +43,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
 
   // Date strings
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateKey();
+
+  // Streak calculation
+  const computedStreak = useMemo(() => calculateRealStreak(tasks), [tasks]);
 
   // Calculations
   const todayTasks = useMemo(() => tasks.filter((t) => t.dueDate === todayStr), [tasks, todayStr]);
   const completedToday = useMemo(() => todayTasks.filter((t) => t.completed), [todayTasks]);
   const pendingToday = useMemo(() => todayTasks.filter((t) => !t.completed), [todayTasks]);
-  const overdueTasks = useMemo(() => tasks.filter((t) => !t.completed && t.dueDate < todayStr), [tasks, todayStr]);
+  const overdueTasks = useMemo(() => tasks.filter((t) => isTaskOverdue(t)), [tasks]);
 
   const todayCompletionRate = todayTasks.length > 0 
     ? Math.round((completedToday.length / todayTasks.length) * 100) 
@@ -111,7 +115,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const strokeDashoffset = circumference - (todayCompletionRate / 100) * circumference;
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="space-y-5 pb-32">
       {/* Top Welcome Card */}
       <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-[#131627] via-[#10121f] to-[#0c0d16] border border-white/10 p-5 sm:p-6 shadow-xl">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -121,7 +125,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               <span>{formattedDate}</span>
             </div>
             <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              {greeting}, Architect
+              {greeting}
             </h1>
             <p className="mt-1 text-xs sm:text-sm text-slate-300 max-w-md leading-relaxed">
               {productivityInsight}
@@ -254,21 +258,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div>
               <div className="flex items-center gap-2">
                 <span className="text-sm font-bold text-white">
-                  {preferences.streak.currentStreak}-Day Streak Active!
+                  {computedStreak.currentStreak > 0 
+                    ? `${computedStreak.currentStreak}-Day Streak Active!` 
+                    : 'Start Your Streak Today!'}
                 </span>
                 <span className="text-[10px] font-semibold text-amber-400 bg-amber-400/10 px-2 py-0.5 rounded-full">
-                  Record: {preferences.streak.longestStreak} Days
+                  Record: {Math.max(computedStreak.longestStreak, preferences.streak?.longestStreak || 0)} Days
                 </span>
               </div>
               <p className="text-xs text-slate-400 mt-0.5">
-                Complete at least 1 task every day to extend your productivity streak.
+                {computedStreak.currentStreak > 0
+                  ? 'Complete at least 1 task every day to extend your productivity streak.'
+                  : 'Complete a task today to light your productivity streak flame.'}
               </p>
             </div>
-          </div>
-
-          <div className="hidden sm:flex items-center gap-1.5 text-xs text-indigo-400 font-semibold">
-            <Award className="w-4 h-4" />
-            <span>Milestone unlocked</span>
           </div>
         </div>
       )}
@@ -428,11 +431,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 currentCount = completedToday.length;
               } else if (g.type === 'weekly') {
                 // last 7 days completed
-                const sevenDaysAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
+                const sevenDaysAgo = offsetLocalDate(todayStr, -7);
                 currentCount = tasks.filter((t) => t.completed && t.dueDate >= sevenDaysAgo).length;
               } else {
                 // 30 days
-                const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+                const thirtyDaysAgo = offsetLocalDate(todayStr, -30);
                 currentCount = tasks.filter((t) => t.completed && t.dueDate >= thirtyDaysAgo).length;
               }
 

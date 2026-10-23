@@ -26,9 +26,9 @@ export const DEFAULT_PREFERENCES: UserPreferences = {
   timeFormat: '12h',
   gamificationEnabled: true,
   streak: {
-    currentStreak: 4,
-    longestStreak: 12,
-    lastCompletedDate: new Date().toISOString().split('T')[0],
+    currentStreak: 0,
+    longestStreak: 0,
+    lastCompletedDate: '',
   },
   mobileFrameMode: false,
 };
@@ -39,179 +39,8 @@ export const DEFAULT_GOALS: Goal[] = [
   { id: 'goal-monthly', title: 'Monthly Milestone Target', type: 'monthly', target: 100 },
 ];
 
-// Helper to format date YYYY-MM-DD
-function getDateString(offsetDays: number = 0): string {
-  const d = new Date();
-  d.setDate(d.getDate() + offsetDays);
-  return d.toISOString().split('T')[0];
-}
-
 export function generateSeedTasks(): Task[] {
-  const today = getDateString(0);
-  const tomorrow = getDateString(1);
-  const inThreeDays = getDateString(3);
-  const yesterday = getDateString(-1);
-
-  return [
-    {
-      id: 'task-seed-1',
-      title: 'Submit Operating Systems Lab Assignment 4',
-      description: 'Implement round-robin CPU scheduling algorithm and compile test benchmarking report.',
-      categoryId: 'assignments',
-      priority: 'high',
-      dueDate: today,
-      dueTime: '16:30',
-      estimatedDuration: 90,
-      completed: false,
-      pinned: true,
-      subtasks: [
-        { id: 'sub-1', title: 'Implement scheduler logic in C/C++', completed: true },
-        { id: 'sub-2', title: 'Run simulation tests with 10 processes', completed: true },
-        { id: 'sub-3', title: 'Export benchmark charts and submit PDF', completed: false },
-      ],
-      notes: 'Make sure turnaround time formulas match textbook chapter 5.',
-      recurrence: { type: 'none' },
-      reminders: [
-        {
-          id: 'rem-1',
-          type: '1h_before',
-          minutesBefore: 60,
-          scheduledTime: new Date(Date.now() + 2 * 60 * 60 * 1000).toISOString(),
-          notified: false,
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-2',
-      title: 'Computer Networks Lecture & Chapter Review',
-      description: 'Review TCP 3-way handshake and congestion control window mechanics.',
-      categoryId: 'college',
-      priority: 'medium',
-      dueDate: today,
-      dueTime: '11:00',
-      estimatedDuration: 45,
-      completed: true,
-      completedAt: new Date().toISOString(),
-      pinned: false,
-      subtasks: [
-        { id: 'sub-2-1', title: 'Summarize sliding window slides', completed: true },
-        { id: 'sub-2-2', title: 'Solve 3 practice numericals', completed: true },
-      ],
-      notes: 'Midterm covers chapters 3 to 6.',
-      recurrence: { type: 'weekly', interval: 1 },
-      reminders: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-3',
-      title: 'Evening 45-Min Workout & Core Conditioning',
-      description: 'Upper body hypertrophy workout followed by 15 min mobility and stretching.',
-      categoryId: 'health',
-      priority: 'medium',
-      dueDate: today,
-      dueTime: '18:45',
-      estimatedDuration: 45,
-      completed: false,
-      pinned: false,
-      subtasks: [
-        { id: 'sub-3-1', title: 'Warmup & dynamic mobility', completed: false },
-        { id: 'sub-3-2', title: 'Pushups & dumbbell presses', completed: false },
-        { id: 'sub-3-3', title: 'Core circuit & hydration', completed: false },
-      ],
-      notes: 'Stay hydrated; target 3L water today.',
-      recurrence: { type: 'daily', interval: 1 },
-      reminders: [
-        {
-          id: 'rem-3',
-          type: '15m_before',
-          minutesBefore: 15,
-          scheduledTime: new Date(Date.now() + 4 * 60 * 60 * 1000).toISOString(),
-          notified: false,
-        },
-      ],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-4',
-      title: 'Review Capstone Project Architecture Proposal',
-      description: 'Review database normalization schemas and offline synchronization strategy with team.',
-      categoryId: 'projects',
-      priority: 'high',
-      dueDate: tomorrow,
-      dueTime: '14:00',
-      estimatedDuration: 60,
-      completed: false,
-      pinned: true,
-      subtasks: [
-        { id: 'sub-4-1', title: 'Draft ER diagram v2', completed: false },
-        { id: 'sub-4-2', title: 'Check offline sync fallback', completed: false },
-      ],
-      notes: 'Sync with mentor at 3:00 PM.',
-      recurrence: { type: 'none' },
-      reminders: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-5',
-      title: 'Weekly Grocery Stock & Meal Prep',
-      description: 'Buy fresh vegetables, whole grains, yogurt, and meal prep lunches.',
-      categoryId: 'personal',
-      priority: 'low',
-      dueDate: inThreeDays,
-      dueTime: '10:00',
-      estimatedDuration: 75,
-      completed: false,
-      pinned: false,
-      subtasks: [],
-      notes: '',
-      recurrence: { type: 'weekly', interval: 1 },
-      reminders: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-6',
-      title: 'Submit Scholarship Renewal Form',
-      description: 'Deadline was yesterday; confirm submission status with student affairs office.',
-      categoryId: 'college',
-      priority: 'high',
-      dueDate: yesterday,
-      dueTime: '17:00',
-      estimatedDuration: 30,
-      completed: false,
-      pinned: false,
-      subtasks: [],
-      notes: 'Contact counselor if confirmation email is missing.',
-      recurrence: { type: 'none' },
-      reminders: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-    {
-      id: 'task-seed-7',
-      title: 'Morning Mindfulness & Hydration',
-      description: '10 minutes deep breathing, 500ml water before screen time.',
-      categoryId: 'health',
-      priority: 'low',
-      dueDate: today,
-      dueTime: '07:30',
-      estimatedDuration: 15,
-      completed: true,
-      completedAt: new Date().toISOString(),
-      pinned: false,
-      subtasks: [],
-      notes: '',
-      recurrence: { type: 'daily', interval: 1 },
-      reminders: [],
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    },
-  ];
+  return [];
 }
 
 // Open IndexedDB database
@@ -236,69 +65,216 @@ function openDB(): Promise<IDBDatabase> {
   });
 }
 
+const INSTALLATION_MARKER_KEY = 'chronos_installed';
+
 // Storage Manager
 export class StorageService {
   private static isIdbSupported = typeof window !== 'undefined' && 'indexedDB' in window;
 
-  // TASKS
-  static async getTasks(): Promise<Task[]> {
+  // Check if installation marker exists
+  static isInstalled(): boolean {
     try {
-      if (this.isIdbSupported) {
+      return localStorage.getItem(INSTALLATION_MARKER_KEY) === '1';
+    } catch {
+      return false;
+    }
+  }
+
+  static markInstalled(): void {
+    try {
+      localStorage.setItem(INSTALLATION_MARKER_KEY, '1');
+    } catch {
+      // Ignore if localStorage unavailable/private browsing quota
+    }
+  }
+
+  static generateSeedTasks(): Task[] {
+    return [];
+  }
+
+  // TASKS
+  static async getTasks(userId?: string): Promise<Task[]> {
+    const installed = this.isInstalled();
+    let allTasks: Task[] = [];
+
+    if (this.isIdbSupported) {
+      try {
         const db = await openDB();
-        return new Promise((resolve) => {
+        const idbTasks = await new Promise<Task[] | null>((resolve) => {
           const tx = db.transaction(STORE_TASKS, 'readonly');
           const store = tx.objectStore(STORE_TASKS);
           const req = store.getAll();
           req.onsuccess = () => {
-            const result = req.result as Task[];
-            if (result && result.length > 0) {
-              resolve(result);
-            } else {
-              // First time: seed default tasks
-              const seed = generateSeedTasks();
-              this.saveTasks(seed);
-              resolve(seed);
-            }
+            const result = (req.result as Task[]) || [];
+            const filtered = result.filter((t) => !t.id.startsWith('task-seed-'));
+            resolve(filtered);
           };
-          req.onerror = () => {
-            resolve(this.getTasksFallback());
-          };
+          req.onerror = () => resolve(null);
         });
+
+        if (idbTasks !== null) {
+          if (idbTasks.length > 0 || installed) {
+            this.markInstalled();
+            allTasks = idbTasks;
+            try {
+              localStorage.setItem('chronos_tasks', JSON.stringify(idbTasks));
+            } catch {}
+          }
+        }
+      } catch (err) {
+        console.warn('IndexedDB read error, falling back to localStorage:', err);
       }
-    } catch {
-      // Fallback
+    }
+
+    if (allTasks.length === 0) {
+      allTasks = this.getTasksFallback();
+    }
+
+    // Filter by userId: if userId provided, return user's tasks; otherwise return anonymous local tasks
+    if (userId) {
+      return allTasks.filter((t) => t.userId === userId);
+    }
+    return allTasks.filter((t) => !t.userId);
+  }
+
+  // Get all tasks across all users (for backup/export)
+  static async getAllTasks(): Promise<Task[]> {
+    if (this.isIdbSupported) {
+      try {
+        const db = await openDB();
+        return await new Promise<Task[]>((resolve) => {
+          const tx = db.transaction(STORE_TASKS, 'readonly');
+          const store = tx.objectStore(STORE_TASKS);
+          const req = store.getAll();
+          req.onsuccess = () => resolve((req.result as Task[]) || []);
+          req.onerror = () => resolve(this.getTasksFallback());
+        });
+      } catch {}
     }
     return this.getTasksFallback();
   }
 
   private static getTasksFallback(): Task[] {
+    const installed = this.isInstalled();
     try {
       const raw = localStorage.getItem('chronos_tasks');
-      if (raw) {
-        return JSON.parse(raw);
+      if (raw !== null) {
+        try {
+          const parsed = JSON.parse(raw);
+          if (Array.isArray(parsed)) {
+            this.markInstalled();
+            const filtered = parsed.filter((t) => !t.id.startsWith('task-seed-'));
+            if (filtered.length !== parsed.length) {
+              localStorage.setItem('chronos_tasks', JSON.stringify(filtered));
+            }
+            return filtered;
+          }
+        } catch (parseErr) {
+          console.error('Failed to parse localStorage chronos_tasks JSON. Preserving raw data:', parseErr);
+          return [];
+        }
       }
-      const seed = generateSeedTasks();
+
+      if (installed) {
+        return [];
+      }
+
+      this.markInstalled();
+      const seed = generateSeedTasks(); // empty array
       localStorage.setItem('chronos_tasks', JSON.stringify(seed));
       return seed;
     } catch {
-      return generateSeedTasks();
+      return [];
     }
   }
 
-  static async saveTasks(tasks: Task[]): Promise<void> {
+  static async saveTasks(userTasks: Task[], userId?: string): Promise<void> {
+    this.markInstalled();
+
+    // Ensure all tasks in userTasks carry the correct userId
+    const taggedUserTasks = userTasks.map((t) => ({
+      ...t,
+      userId: userId || t.userId,
+    }));
+
+    // Read all existing tasks to merge safely without overwriting other users' tasks
+    const existingAll = await this.getAllTasks();
+    const otherUsersTasks = existingAll.filter((t) => (userId ? t.userId !== userId : Boolean(t.userId)));
+    const mergedAll = [...otherUsersTasks, ...taggedUserTasks];
+
+    // 1. Write to localStorage
     try {
-      localStorage.setItem('chronos_tasks', JSON.stringify(tasks));
-      if (this.isIdbSupported) {
+      localStorage.setItem('chronos_tasks', JSON.stringify(mergedAll));
+    } catch (e) {
+      console.warn('localStorage saveTasks error:', e);
+    }
+
+    // 2. Write to IndexedDB
+    if (this.isIdbSupported) {
+      try {
+        const db = await openDB();
+        await new Promise<void>((resolve, reject) => {
+          const tx = db.transaction(STORE_TASKS, 'readwrite');
+          const store = tx.objectStore(STORE_TASKS);
+          store.clear();
+          for (const t of mergedAll) {
+            store.put(t);
+          }
+          tx.oncomplete = () => resolve();
+          tx.onerror = () => reject(tx.error);
+          tx.onabort = () => reject(new Error('IndexedDB transaction aborted'));
+        });
+      } catch (e) {
+        console.warn('IndexedDB saveTasks error:', e);
+      }
+    }
+  }
+
+  // Migrate anonymous local tasks to an authenticated user
+  static async migrateAnonymousTasks(userId: string): Promise<number> {
+    const anonymousTasks = await this.getTasks(); // gets tasks with !userId
+    if (anonymousTasks.length === 0) return 0;
+
+    const migrated = anonymousTasks.map((t) => ({ ...t, userId }));
+    const existingUserTasks = await this.getTasks(userId);
+    const combined = [...existingUserTasks, ...migrated];
+    await this.saveTasks(combined, userId);
+
+    // Remove anonymous tasks now that they are assigned
+    const allRemaining = (await this.getAllTasks()).filter((t) => Boolean(t.userId));
+    if (this.isIdbSupported) {
+      try {
         const db = await openDB();
         const tx = db.transaction(STORE_TASKS, 'readwrite');
         const store = tx.objectStore(STORE_TASKS);
         store.clear();
-        for (const t of tasks) {
-          store.put(t);
-        }
-      }
-    } catch (e) {
-      console.warn('Storage saveTasks error:', e);
+        for (const t of allRemaining) store.put(t);
+      } catch {}
+    }
+    try {
+      localStorage.setItem('chronos_tasks', JSON.stringify(allRemaining));
+    } catch {}
+
+    return migrated.length;
+  }
+
+  // Delete all tasks owned by a specific user (Account Deletion)
+  static async deleteUserTasks(userId: string): Promise<void> {
+    const all = await this.getAllTasks();
+    const remaining = all.filter((t) => t.userId !== userId);
+
+    try {
+      localStorage.setItem('chronos_tasks', JSON.stringify(remaining));
+    } catch {}
+
+    if (this.isIdbSupported) {
+      try {
+        const db = await openDB();
+        const tx = db.transaction(STORE_TASKS, 'readwrite');
+        const store = tx.objectStore(STORE_TASKS);
+        store.clear();
+        for (const t of remaining) store.put(t);
+      } catch {}
     }
   }
 
@@ -329,7 +305,12 @@ export class StorageService {
     try {
       const raw = localStorage.getItem('chronos_preferences');
       if (raw) {
-        return { ...DEFAULT_PREFERENCES, ...JSON.parse(raw) };
+        const parsed = JSON.parse(raw);
+        if (parsed.streak && parsed.streak.longestStreak === 12 && parsed.streak.currentStreak === 4) {
+          parsed.streak = { currentStreak: 0, longestStreak: 0, lastCompletedDate: '' };
+          this.savePreferences({ ...DEFAULT_PREFERENCES, ...parsed });
+        }
+        return { ...DEFAULT_PREFERENCES, ...parsed };
       }
       localStorage.setItem('chronos_preferences', JSON.stringify(DEFAULT_PREFERENCES));
       return DEFAULT_PREFERENCES;
@@ -427,6 +408,7 @@ export class StorageService {
       'Duration (min)',
       'Completed',
       'Completed At',
+      'Completion Remark',
       'Pinned',
       'Subtasks Count',
       'Subtasks Completed',
@@ -450,6 +432,7 @@ export class StorageService {
         t.estimatedDuration || 0,
         t.completed ? 'YES' : 'NO',
         t.completedAt || '',
+        `"${(t.completionRemark || '').replace(/"/g, '""')}"`,
         t.pinned ? 'YES' : 'NO',
         subTotal,
         subDone,

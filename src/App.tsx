@@ -16,6 +16,7 @@ import {
 } from './types';
 import { StorageService } from './services/storage';
 import { calculateNextOccurrence, NotificationService } from './services/notifications';
+import { localDateKey, calculateRealStreak } from './utils/dateUtils';
 import { AndroidNotificationBar } from './components/AndroidNotificationBar';
 import { TopHeader } from './components/TopHeader';
 import { BottomNav } from './components/BottomNav';
@@ -25,9 +26,15 @@ import { CalendarView } from './components/CalendarView';
 import { ReportsView } from './components/ReportsView';
 import { SettingsView } from './components/SettingsView';
 import { TaskEditorModal } from './components/TaskEditorModal';
+import { TaskCompletionRemarkModal } from './components/TaskCompletionRemarkModal';
 import { AndroidPermissionsModal } from './components/AndroidPermissionsModal';
 import { AndroidGuideModal } from './components/AndroidGuideModal';
-import { RotateCcw, X } from 'lucide-react';
+import { AuthModal } from './components/AuthModal';
+import { ProfileModal } from './components/ProfileModal';
+import { EmailVerificationModal } from './components/EmailVerificationModal';
+import { AuthService } from './services/auth';
+import { UserProfile } from './types';
+import { RotateCcw, X, ShieldAlert, ArrowRight, Check } from 'lucide-react';
 
 export default function App() {
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -39,11 +46,23 @@ export default function App() {
   const [currentTab, setCurrentTab] = useState<MainNavTab>('home');
   const [activeFilterView, setActiveFilterView] = useState<TaskFilterView>('today');
 
+  // User Authentication State
+  const [currentUser, setCurrentUser] = useState<UserProfile | null>(() => {
+    return AuthService.getCurrentSession()?.user || null;
+  });
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
+  const [isEmailVerifyModalOpen, setIsEmailVerifyModalOpen] = useState(false);
+  const [verificationInitialCode, setVerificationInitialCode] = useState('');
+  const [authModalInitialTab, setAuthModalInitialTab] = useState<'signin' | 'signup' | 'forgot'>('signin');
+  const [migrationPrompt, setMigrationPrompt] = useState<{ count: number; userId: string } | null>(null);
+
   // Modals
   const [isTaskEditorOpen, setIsTaskEditorOpen] = useState(false);
   const [taskToEdit, setTaskToEdit] = useState<Task | null>(null);
   const [isPermissionsModalOpen, setIsPermissionsModalOpen] = useState(false);
   const [isAndroidGuideOpen, setIsAndroidGuideOpen] = useState(false);
+  const [pendingCompletionTask, setPendingCompletionTask] = useState<Task | null>(null);
 
   // Notifications
   const [activeNotifications, setActiveNotifications] = useState<ActiveNotification[]>([]);
@@ -55,29 +74,70 @@ export default function App() {
   // Mobile frame wrapper toggle (for desktop view)
   const [mobileFrameMode, setMobileFrameMode] = useState(false);
 
-  // Initial Load from Storage
-  useEffect(() => {
-    async function loadData() {
-      const loadedTasks = await StorageService.getTasks();
-      const loadedCategories = StorageService.getCategories();
-      const loadedPrefs = StorageService.getPreferences();
-      const loadedGoals = StorageService.getGoals();
+  // Load data scoped to active user
+  const loadUserData = useCallback(async (userId?: string) => {
+    const loadedTasks = await StorageService.getTasks(userId);
+    const loadedCategories = StorageService.getCategories();
+    const loadedPrefs = StorageService.getPreferences();
+    const loadedGoals = StorageService.getGoals();
 
-      setTasks(loadedTasks);
-      setCategories(loadedCategories);
-      setPreferences(loadedPrefs);
-      setGoals(loadedGoals);
-      setMobileFrameMode(loadedPrefs.mobileFrameMode || false);
-      setNotificationPermission(NotificationService.getPermission());
-    }
-    loadData();
+    setTasks(loadedTasks);
+    setCategories(loadedCategories);
+    setPreferences(loadedPrefs);
+    setGoals(loadedGoals);
+    setMobileFrameMode(loadedPrefs.mobileFrameMode || false);
+    setNotificationPermission(NotificationService.getPermission());
   }, []);
 
-  // Save tasks on changes
+  useEffect(() => {
+    loadUserData(currentUser?.id);
+  }, [currentUser?.id, loadUserData]);
+
+  // Save tasks scoped to current user
   const updateTasks = useCallback((newTasks: Task[]) => {
     setTasks(newTasks);
-    StorageService.saveTasks(newTasks);
-  }, []);
+    StorageService.saveTasks(newTasks, currentUser?.id);
+  }, [currentUser?.id]);
+
+  // Auth event handlers
+  const handleAuthSuccess = async (user: UserProfile, isNewRegistration = false, initialCode?: string) => {
+    setCurrentUser(user);
+    if (initialCode) {
+      setVerificationInitialCode(initialCode);
+      setIsEmailVerifyModalOpen(true);
+    }
+    // Check if there are anonymous local tasks that could be imported
+    const anonymousTasks = await StorageService.getTasks(); // returns tasks with !userId
+    if (anonymousTasks.length > 0) {
+      setMigrationPrompt({ count: anonymousTasks.length, userId: user.id });
+    }
+  };
+
+  const handleLogout = () => {
+    AuthService.logout();
+    setCurrentUser(null);
+    setActiveNotifications([]);
+  };
+
+  const handleDeleteAccount = async () => {
+    if (currentUser) {
+      await StorageService.deleteUserTasks(currentUser.id);
+    }
+    AuthService.logout();
+    setCurrentUser(null);
+    setActiveNotifications([]);
+  };
+
+  const handleConfirmMigration = async () => {
+    if (!migrationPrompt) return;
+    await StorageService.migrateAnonymousTasks(migrationPrompt.userId);
+    setMigrationPrompt(null);
+    await loadUserData(migrationPrompt.userId);
+  };
+
+  const handleDeclineMigration = () => {
+    setMigrationPrompt(null);
+  };
 
   // Save preferences
   const handleUpdatePreferences = useCallback((newPrefs: UserPreferences) => {
@@ -147,83 +207,127 @@ export default function App() {
 
   // Handle Save Task (Create or Edit)
   const handleSaveTask = (task: Task) => {
+    const tagged: Task = {
+      ...task,
+      userId: currentUser?.id || task.userId,
+    };
     const existingIndex = tasks.findIndex((t) => t.id === task.id);
     let updated: Task[];
     if (existingIndex >= 0) {
       updated = [...tasks];
-      updated[existingIndex] = task;
+      updated[existingIndex] = tagged;
     } else {
-      updated = [task, ...tasks];
+      updated = [tagged, ...tasks];
     }
     updateTasks(updated);
   };
 
-  // Handle Toggle Task Completion
-  const handleToggleComplete = (task: Task) => {
-    const nowCompleted = !task.completed;
-    const now = new Date();
-    const todayStr = now.toISOString().split('T')[0];
-
-    // Sound FX
-    if (nowCompleted && preferences.soundEnabled) {
-      NotificationService.playCompleteSound();
-    }
-
-    // Confetti on completion
-    if (nowCompleted) {
-      try {
-        confetti({
-          particleCount: 40,
-          spread: 60,
-          origin: { y: 0.8 },
-          colors: ['#6366F1', '#A855F7', '#38BDF8', '#10B981'],
-        });
-      } catch {
-        // Fallback
-      }
-    }
-
-    // Update streak if completing first task today
-    if (nowCompleted && preferences.gamificationEnabled) {
-      if (preferences.streak.lastCompletedDate !== todayStr) {
-        const currentStreak = preferences.streak.currentStreak + 1;
-        const longestStreak = Math.max(currentStreak, preferences.streak.longestStreak);
-        handleUpdatePreferences({
-          ...preferences,
-          streak: {
-            currentStreak,
-            longestStreak,
-            lastCompletedDate: todayStr,
-          },
-        });
-      }
-    }
-
-    // Handle Recurring Task: Generate next occurrence if completing
-    let nextOccurrence: Task | null = null;
-    if (nowCompleted && task.recurrence && task.recurrence.type !== 'none') {
-      nextOccurrence = calculateNextOccurrence(task);
-    }
-
+  // Handle Reopening an already completed task
+  const handleReopenTask = (task: Task) => {
     const updated = tasks.map((t) => {
       if (t.id === task.id) {
         return {
           ...t,
-          completed: nowCompleted,
-          completedAt: nowCompleted ? now.toISOString() : undefined,
+          completed: false,
+          completedAt: undefined,
+          updatedAt: new Date().toISOString(),
         };
       }
       return t;
     });
 
-    if (nextOccurrence) {
-      updated.unshift(nextOccurrence);
+    // Recompute streak
+    if (preferences.gamificationEnabled) {
+      const realStreak = calculateRealStreak(updated, new Date());
+      handleUpdatePreferences({
+        ...preferences,
+        streak: realStreak,
+      });
     }
 
     updateTasks(updated);
+  };
+
+  // Handle Toggle Task Completion:
+  // When an incomplete task is tapped, immediately open the Task Completion Remark Dialog!
+  // When an already completed task is tapped, reopen it directly.
+  const handleToggleComplete = (task: Task) => {
+    if (!task.completed) {
+      setPendingCompletionTask(task);
+    } else {
+      handleReopenTask(task);
+    }
+  };
+
+  // Handle Save & Complete (or Skip for Now) from Completion Remark Dialog
+  const handleConfirmComplete = async (task: Task, remark?: string): Promise<void> => {
+    const now = new Date();
+    const cleanRemark = remark && remark.trim().length > 0 ? remark.trim() : undefined;
+
+    // Crisp completion sound FX
+    if (preferences.soundEnabled) {
+      NotificationService.playCompleteSound();
+    }
+
+    // Celebration confetti
+    try {
+      confetti({
+        particleCount: 40,
+        spread: 60,
+        origin: { y: 0.8 },
+        colors: ['#6366F1', '#A855F7', '#38BDF8', '#10B981'],
+      });
+    } catch {
+      // Fallback
+    }
+
+    // Map updated tasks: set completed, completedAt, and completionRemark
+    const updated = tasks.map((t) => {
+      if (t.id === task.id) {
+        return {
+          ...t,
+          completed: true,
+          completedAt: now.toISOString(),
+          completionRemark: cleanRemark,
+          updatedAt: now.toISOString(),
+        };
+      }
+      return t;
+    });
+
+    // Handle Recurring Task: Generate next occurrence ONLY for recurring tasks
+    if (task.recurrence && task.recurrence.type !== 'none') {
+      const generated = calculateNextOccurrence(task);
+      if (generated) {
+        generated.userId = currentUser?.id;
+        // Prevent duplicate next occurrences if one already exists for this title and dueDate
+        const duplicate = updated.some(
+          (t) => t.title === generated.title && t.dueDate === generated.dueDate && !t.completed
+        );
+        if (!duplicate) {
+          updated.unshift(generated);
+        }
+      }
+    }
+
+    // Calculate real streaks from actual completed task history
+    if (preferences.gamificationEnabled) {
+      const realStreak = calculateRealStreak(updated, now);
+      handleUpdatePreferences({
+        ...preferences,
+        streak: realStreak,
+      });
+    }
+
+    // Persist changes reliably to IndexedDB and localStorage
+    await StorageService.saveTasks(updated, currentUser?.id);
+    setTasks(updated);
 
     // Dismiss active notification for this task
     setActiveNotifications((prev) => prev.filter((n) => n.taskId !== task.id));
+
+    // Close the completion remark dialog
+    setPendingCompletionTask(null);
   };
 
   // Handle Task Deletion with Undo Toast
@@ -334,11 +438,11 @@ export default function App() {
   const handleTestNotification = () => {
     const testTask: Task = {
       id: 'test-alarm',
-      title: 'Operating Systems Midterm Review',
-      description: 'Review virtual memory paging and cache coherence protocols.',
+      title: 'Test Task Reminder',
+      description: 'This is a sample alert to test your sound, vibration, and notification banner.',
       categoryId: 'college',
       priority: 'high',
-      dueDate: new Date().toISOString().split('T')[0],
+      dueDate: localDateKey(),
       dueTime: '15:30',
       estimatedDuration: 45,
       completed: false,
@@ -378,8 +482,9 @@ export default function App() {
     setActiveNotifications([]);
   };
 
+  const todayKey = localDateKey();
   const pendingTodayCount = tasks.filter(
-    (t) => !t.completed && t.dueDate === new Date().toISOString().split('T')[0]
+    (t) => !t.completed && t.dueDate === todayKey
   ).length;
 
   return (
@@ -420,13 +525,60 @@ export default function App() {
         <TopHeader
           notificationCount={activeNotifications.length}
           onOpenNotifications={() => {
-            // Trigger shade open via notification bar click or modal
             setIsPermissionsModalOpen(true);
           }}
           onOpenAndroidGuide={() => setIsAndroidGuideOpen(true)}
           mobileFrameMode={mobileFrameMode}
           onToggleMobileFrame={() => setMobileFrameMode(!mobileFrameMode)}
+          user={currentUser}
+          onOpenAuth={() => {
+            setAuthModalInitialTab('signin');
+            setIsAuthModalOpen(true);
+          }}
+          onOpenProfile={() => setIsProfileModalOpen(true)}
         />
+
+        {/* Email Verification Reminder Banner */}
+        {currentUser && !currentUser.isEmailVerified && (
+          <div className="bg-amber-500/10 border-b border-amber-500/20 px-4 py-2 flex items-center justify-between text-xs text-amber-300 animate-in fade-in">
+            <div className="flex items-center gap-2 truncate pr-2">
+              <ShieldAlert className="w-4 h-4 text-amber-400 shrink-0" />
+              <span className="truncate">Your email ({currentUser.email}) is not yet verified.</span>
+            </div>
+            <button
+              onClick={() => setIsEmailVerifyModalOpen(true)}
+              className="px-2.5 py-1 rounded-lg bg-amber-500/20 hover:bg-amber-500/30 text-amber-200 font-bold shrink-0 transition cursor-pointer"
+            >
+              Verify Now
+            </button>
+          </div>
+        )}
+
+        {/* Anonymous Tasks Migration Prompt */}
+        {migrationPrompt && (
+          <div className="bg-indigo-950/80 border-b border-indigo-500/30 px-4 py-3 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2.5 text-xs text-indigo-200 animate-in slide-in-from-top-2">
+            <div className="flex items-center gap-2">
+              <Check className="w-4 h-4 text-indigo-400 shrink-0" />
+              <span>
+                Found <strong>{migrationPrompt.count}</strong> existing local tasks. Import them into your account?
+              </span>
+            </div>
+            <div className="flex items-center gap-2 shrink-0">
+              <button
+                onClick={handleConfirmMigration}
+                className="px-3 py-1 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white font-bold transition shadow cursor-pointer"
+              >
+                Import Tasks
+              </button>
+              <button
+                onClick={handleDeclineMigration}
+                className="px-2.5 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
+              >
+                Keep Separate
+              </button>
+            </div>
+          </div>
+        )}
 
         {/* Main Content Area */}
         <main className="flex-1 px-3.5 sm:px-4 py-4 overflow-y-auto">
@@ -536,6 +688,7 @@ export default function App() {
               <button
                 onClick={() => setUndoToast(null)}
                 className="text-slate-500 hover:text-white p-1"
+                aria-label="Dismiss undo notification"
               >
                 <X className="w-3.5 h-3.5" />
               </button>
@@ -565,6 +718,15 @@ export default function App() {
         defaultReminderOffset={preferences.defaultReminder}
       />
 
+      {/* Task Completion Remark Modal */}
+      <TaskCompletionRemarkModal
+        isOpen={Boolean(pendingCompletionTask)}
+        task={pendingCompletionTask}
+        onClose={() => setPendingCompletionTask(null)}
+        onSaveAndComplete={(t, remark) => handleConfirmComplete(t, remark)}
+        onSkip={(t) => handleConfirmComplete(t, undefined)}
+      />
+
       {/* Android Permissions & Exact Alarm Modal */}
       <AndroidPermissionsModal
         isOpen={isPermissionsModalOpen}
@@ -579,6 +741,39 @@ export default function App() {
         isOpen={isAndroidGuideOpen}
         onClose={() => setIsAndroidGuideOpen(false)}
       />
+
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onClose={() => setIsAuthModalOpen(false)}
+        initialTab={authModalInitialTab}
+        onAuthSuccess={handleAuthSuccess}
+      />
+
+      {/* User Profile Modal */}
+      {currentUser && (
+        <ProfileModal
+          isOpen={isProfileModalOpen}
+          onClose={() => setIsProfileModalOpen(false)}
+          user={currentUser}
+          tasks={tasks}
+          onUpdateProfile={(updated) => setCurrentUser(updated)}
+          onLogout={handleLogout}
+          onDeleteAccount={handleDeleteAccount}
+          onOpenVerifyModal={() => setIsEmailVerifyModalOpen(true)}
+        />
+      )}
+
+      {/* Email Verification Modal */}
+      {currentUser && (
+        <EmailVerificationModal
+          isOpen={isEmailVerifyModalOpen}
+          onClose={() => setIsEmailVerifyModalOpen(false)}
+          user={currentUser}
+          initialCode={verificationInitialCode}
+          onVerificationSuccess={(updated) => setCurrentUser(updated)}
+        />
+      )}
     </div>
   );
 }

@@ -21,6 +21,7 @@ import {
 } from 'lucide-react';
 import { CategoryItem, Goal, Priority, Task } from '../types';
 import { StorageService } from '../services/storage';
+import { localDateKey, isTaskOverdue, offsetLocalDate } from '../utils/dateUtils';
 
 interface ReportsViewProps {
   tasks: Task[];
@@ -36,9 +37,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
   const [filterPriority, setFilterPriority] = useState<string>('all');
   const [comparePrevious, setComparePrevious] = useState(false);
   const [copiedSummary, setCopiedSummary] = useState(false);
+  const [shareFallbackText, setShareFallbackText] = useState<string | null>(null);
 
   const categoryMap = useMemo(() => new Map(categories.map((c) => [c.id, c])), [categories]);
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateKey();
 
   // Base filtered tasks
   const filteredTasks = useMemo(() => {
@@ -54,10 +56,10 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
     const todayTasks = filteredTasks.filter((t) => t.dueDate === todayStr);
     const completed = todayTasks.filter((t) => t.completed);
     const pending = todayTasks.filter((t) => !t.completed);
-    const overdue = filteredTasks.filter((t) => !t.completed && t.dueDate < todayStr);
+    const overdue = filteredTasks.filter((t) => isTaskOverdue(t));
     const onTimeCompleted = completed.filter((t) => {
       if (!t.completedAt) return true;
-      const compDate = t.completedAt.split('T')[0];
+      const compDate = t.completedAt.slice(0, 10);
       return compDate <= t.dueDate;
     });
     const missedDeadlines = overdue.length;
@@ -82,7 +84,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
     for (let i = 6; i >= 0; i--) {
       const d = new Date(now);
       d.setDate(d.getDate() - i);
-      const str = d.toISOString().split('T')[0];
+      const str = localDateKey(d);
       const dayLabel = d.toLocaleDateString('en-US', { weekday: 'short' });
 
       const dayTasks = filteredTasks.filter((t) => t.dueDate === str);
@@ -131,7 +133,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
       { label: 'Week 4', created: 0, completed: 0 },
     ];
 
-    const thirtyDaysAgo = new Date(Date.now() - 30 * 86400000).toISOString().split('T')[0];
+    const thirtyDaysAgo = offsetLocalDate(todayStr, -30);
     const monthTasks = filteredTasks.filter((t) => t.dueDate >= thirtyDaysAgo);
 
     monthTasks.forEach((t) => {
@@ -224,8 +226,8 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
     URL.revokeObjectURL(url);
   };
 
-  // Copy Productivity Summary
-  const handleShareSummary = () => {
+  // Copy Productivity Summary with robust fallback
+  const handleShareSummary = async () => {
     let text = `🚀 Chronos Productivity Report (${period.toUpperCase()} - ${todayStr})\n`;
     if (period === 'daily') {
       text += `• Total Tasks: ${dailyStats.total}\n• Completed: ${dailyStats.completed} (${dailyStats.rate}%)\n• Pending: ${dailyStats.pending}\n• Overdue: ${dailyStats.overdue}\n• On-time completion: ${dailyStats.onTimeCompleted}\n`;
@@ -236,15 +238,23 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
     }
     text += `\nTracked with Chronos Task Tracker & Reminders.`;
 
-    navigator.clipboard.writeText(text);
-    setCopiedSummary(true);
-    setTimeout(() => setCopiedSummary(false), 2000);
+    try {
+      if (navigator.clipboard && window.isSecureContext) {
+        await navigator.clipboard.writeText(text);
+        setCopiedSummary(true);
+        setTimeout(() => setCopiedSummary(false), 2000);
+      } else {
+        setShareFallbackText(text);
+      }
+    } catch {
+      setShareFallbackText(text);
+    }
   };
 
   const maxWeeklyBar = Math.max(...weeklyStats.days.map((d) => Math.max(d.created, d.completed, 1)));
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-32">
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
         <div>
@@ -398,7 +408,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
         <div className="space-y-4">
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             <div className="p-3.5 rounded-2xl bg-[#141624] border border-white/5">
-              <span className="text-xs text-slate-400 block mb-1">Total Created</span>
+              <span className="text-xs text-slate-400 block mb-1">Tasks Due</span>
               <span className="text-2xl font-bold font-mono text-white">{weeklyStats.totalCreated}</span>
               <span className="text-[10px] text-slate-500 block mt-1">Last 7 days</span>
             </div>
@@ -429,7 +439,7 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
               <div className="flex items-center gap-3 text-[11px]">
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded bg-indigo-500" />
-                  <span className="text-slate-400">Created</span>
+                  <span className="text-slate-400">Due</span>
                 </div>
                 <div className="flex items-center gap-1.5">
                   <span className="w-2.5 h-2.5 rounded bg-emerald-400" />
@@ -620,6 +630,47 @@ export const ReportsView: React.FC<ReportsViewProps> = ({ tasks, categories, goa
           ))}
         </div>
       </div>
+
+      {/* Share Summary Fallback Modal */}
+      {shareFallbackText && (
+        <div 
+          className="fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="share-summary-title"
+        >
+          <div className="bg-[#141624] border border-white/10 rounded-2xl p-5 max-w-md w-full shadow-2xl space-y-3">
+            <div className="flex items-center justify-between">
+              <h4 id="share-summary-title" className="text-sm font-bold text-white">Share Productivity Summary</h4>
+              <button
+                onClick={() => setShareFallbackText(null)}
+                className="text-slate-400 hover:text-white text-xs px-2 py-1 rounded bg-white/5"
+                aria-label="Close share dialog"
+              >
+                ✕ Close
+              </button>
+            </div>
+            <p className="text-xs text-slate-400">
+              Direct clipboard access was restricted by your browser. You can select and copy the summary text below:
+            </p>
+            <textarea
+              readOnly
+              value={shareFallbackText}
+              className="w-full h-36 bg-[#0c0d16] border border-white/10 rounded-xl p-3 text-xs text-slate-200 font-mono resize-none focus:outline-none focus:border-indigo-500"
+              onClick={(e) => (e.target as HTMLTextAreaElement).select()}
+              aria-label="Productivity summary text"
+            />
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => setShareFallbackText(null)}
+                className="px-3.5 py-1.5 rounded-xl bg-indigo-600 text-white text-xs font-semibold hover:bg-indigo-500"
+              >
+                Done
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

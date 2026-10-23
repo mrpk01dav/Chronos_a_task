@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { CategoryItem, Priority, Task, TaskFilterView } from '../types';
 import { TaskCard } from './TaskCard';
+import { localDateKey, isTaskOverdue } from '../utils/dateUtils';
 
 interface TaskListViewProps {
   tasks: Task[];
@@ -54,7 +55,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const [sortBy, setSortBy] = useState<SortOption>('dueDate');
   const [showFiltersModal, setShowFiltersModal] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
+  const todayStr = localDateKey();
 
   const categoryMap = useMemo(() => {
     return new Map(categories.map((c) => [c.id, c]));
@@ -66,7 +67,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       today: tasks.filter((t) => t.dueDate === todayStr).length,
       upcoming: tasks.filter((t) => !t.completed && t.dueDate > todayStr).length,
       all: tasks.length,
-      overdue: tasks.filter((t) => !t.completed && t.dueDate < todayStr).length,
+      overdue: tasks.filter((t) => isTaskOverdue(t)).length,
       completed: tasks.filter((t) => t.completed).length,
       recurring: tasks.filter((t) => t.recurrence && t.recurrence.type !== 'none').length,
     };
@@ -78,7 +79,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
       // Primary View filter
       if (activeFilterView === 'today' && t.dueDate !== todayStr) return false;
       if (activeFilterView === 'upcoming' && (t.completed || t.dueDate <= todayStr)) return false;
-      if (activeFilterView === 'overdue' && (t.completed || t.dueDate >= todayStr)) return false;
+      if (activeFilterView === 'overdue' && !isTaskOverdue(t)) return false;
       if (activeFilterView === 'completed' && !t.completed) return false;
       if (activeFilterView === 'recurring' && (!t.recurrence || t.recurrence.type === 'none')) return false;
 
@@ -148,7 +149,7 @@ export const TaskListView: React.FC<TaskListViewProps> = ({
   const isFiltered = selectedCategory !== 'all' || selectedPriority !== 'all' || searchQuery.trim() !== '';
 
   return (
-    <div className="space-y-4 pb-20">
+    <div className="space-y-4 pb-32">
       {/* Header & Search */}
       <div className="space-y-3">
         <div className="flex items-center justify-between">

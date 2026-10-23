@@ -7,7 +7,8 @@ import {
   Minimize2,
   Sparkles
 } from 'lucide-react';
-import { PWAInstallButton } from './PWAInstallButton';
+import { UserProfile } from '../types';
+import { User, ShieldCheck } from 'lucide-react';
 
 interface TopHeaderProps {
   notificationCount: number;
@@ -15,6 +16,9 @@ interface TopHeaderProps {
   onOpenAndroidGuide: () => void;
   mobileFrameMode: boolean;
   onToggleMobileFrame: () => void;
+  user: UserProfile | null;
+  onOpenAuth: () => void;
+  onOpenProfile: () => void;
 }
 
 export const TopHeader: React.FC<TopHeaderProps> = ({
@@ -23,6 +27,9 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
   onOpenAndroidGuide,
   mobileFrameMode,
   onToggleMobileFrame,
+  user,
+  onOpenAuth,
+  onOpenProfile,
 }) => {
   return (
     <header className="w-full bg-[#0c0e17]/90 backdrop-blur-md border-b border-white/[0.08] px-4 py-2.5 flex items-center justify-between sticky top-0 z-20">
@@ -41,8 +48,27 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
       </div>
 
       <div className="flex items-center gap-2">
-        {/* PWA Install Button */}
-        <PWAInstallButton />
+        {/* User Account / Profile Button */}
+        {user ? (
+          <button
+            onClick={onOpenProfile}
+            className="flex items-center gap-1.5 p-1 sm:px-2.5 sm:py-1 rounded-xl bg-indigo-500/10 hover:bg-indigo-500/20 border border-indigo-500/30 text-white transition cursor-pointer text-xs"
+            title={`Account: ${user.displayName}`}
+          >
+            <div className="w-5 h-5 rounded-lg bg-indigo-600 flex items-center justify-center text-[10px] font-bold text-white">
+              {user.displayName ? user.displayName[0].toUpperCase() : 'U'}
+            </div>
+            <span className="hidden sm:inline font-semibold max-w-[90px] truncate">{user.displayName}</span>
+          </button>
+        ) : (
+          <button
+            onClick={onOpenAuth}
+            className="flex items-center gap-1 px-2.5 py-1.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-bold transition shadow-sm cursor-pointer"
+          >
+            <User className="w-3.5 h-3.5" />
+            <span>Sign In</span>
+          </button>
+        )}
 
         {/* Android Guide Button */}
         <button
@@ -57,6 +83,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Mobile Frame Toggle (for desktop users) */}
         <button
           onClick={onToggleMobileFrame}
+          aria-label={mobileFrameMode ? 'Switch to responsive full-screen' : 'Preview inside Android device frame'}
           className="hidden md:flex p-1.5 rounded-xl bg-white/5 hover:bg-white/10 text-slate-400 hover:text-white transition cursor-pointer"
           title={mobileFrameMode ? 'Switch to responsive full-screen' : 'Preview inside Android device frame'}
         >
@@ -66,6 +93,7 @@ export const TopHeader: React.FC<TopHeaderProps> = ({
         {/* Notification Bell */}
         <button
           onClick={onOpenNotifications}
+          aria-label="Open Android Notification Shade"
           className="relative p-2 rounded-xl bg-[#151726] border border-white/10 hover:border-indigo-500/40 text-slate-300 hover:text-white transition cursor-pointer"
           title="Open Android Notification Shade"
         >

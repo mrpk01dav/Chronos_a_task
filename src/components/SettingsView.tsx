@@ -24,6 +24,7 @@ import {
 } from 'lucide-react';
 import { CategoryItem, ReminderOffset, UserPreferences } from '../types';
 import { StorageService } from '../services/storage';
+import { localDateKey } from '../utils/dateUtils';
 
 interface SettingsViewProps {
   preferences: UserPreferences;
@@ -69,7 +70,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `chronos_backup_${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `chronos_backup_${localDateKey()}.json`;
       a.click();
       URL.revokeObjectURL(url);
       setBackupStatus('Backup downloaded successfully!');
@@ -127,7 +128,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
   const colorPresets = ['#6366F1', '#8B5CF6', '#EC4899', '#EF4444', '#F59E0B', '#10B981', '#06B6D4', '#3B82F6'];
 
   return (
-    <div className="space-y-5 pb-20">
+    <div className="space-y-5 pb-32">
       {/* Title */}
       <div>
         <h1 className="text-xl sm:text-2xl font-extrabold text-white tracking-tight">Settings & Preferences</h1>
@@ -181,16 +182,16 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
           <div className="flex items-center justify-between py-1">
             <div>
               <span className="font-semibold text-slate-200">Theme Mode</span>
-              <p className="text-[11px] text-slate-400">Default dark charcoal palette tailored for OLED screens</p>
+              <p className="text-[11px] text-slate-400">Pure dark charcoal or absolute OLED black optimized for battery</p>
             </div>
             <div className="flex gap-1 p-1 bg-[#181a29] rounded-xl border border-white/10">
               <button
                 onClick={() => updatePref('theme', 'dark')}
                 className={`px-3 py-1 rounded-lg font-semibold transition ${
-                  preferences.theme === 'dark' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                  preferences.theme === 'dark' || preferences.theme === 'light' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                Dark
+                Dark Charcoal
               </button>
               <button
                 onClick={() => updatePref('theme', 'oled')}
@@ -198,15 +199,7 @@ export const SettingsView: React.FC<SettingsViewProps> = ({
                   preferences.theme === 'oled' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
                 }`}
               >
-                OLED
-              </button>
-              <button
-                onClick={() => updatePref('theme', 'light')}
-                className={`px-3 py-1 rounded-lg font-semibold transition ${
-                  preferences.theme === 'light' ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
-                }`}
-              >
-                Light
+                OLED Black
               </button>
             </div>
           </div>

@@ -15,9 +15,11 @@ import {
   ChevronUp, 
   Timer,
   AlertCircle,
-  FileText
+  FileText,
+  MessageSquareQuote
 } from 'lucide-react';
 import { CategoryItem, Priority, Task } from '../types';
+import { localDateKey, isTaskOverdue } from '../utils/dateUtils';
 
 interface TaskCardProps {
   task: Task;
@@ -45,8 +47,8 @@ export const TaskCard: React.FC<TaskCardProps> = ({
   const [showMenu, setShowMenu] = useState(false);
   const [expandedSubtasks, setExpandedSubtasks] = useState(false);
 
-  const todayStr = new Date().toISOString().split('T')[0];
-  const isOverdue = !task.completed && task.dueDate < todayStr;
+  const todayStr = localDateKey();
+  const isOverdue = isTaskOverdue(task);
   const isToday = task.dueDate === todayStr;
 
   const totalSubtasks = task.subtasks?.length || 0;
@@ -223,6 +225,23 @@ export const TaskCard: React.FC<TaskCardProps> = ({
             <p className="mt-1 text-xs text-slate-400 line-clamp-2 leading-relaxed">
               {task.description}
             </p>
+          )}
+
+          {/* Completion Progress Remark */}
+          {task.completed && task.completionRemark && (
+            <div className="mt-2 p-2.5 rounded-xl bg-emerald-500/10 border border-emerald-500/20 text-xs text-emerald-200">
+              <div className="flex items-start gap-1.5">
+                <MessageSquareQuote className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
+                <div className="flex-1">
+                  <span className="font-semibold text-[10px] uppercase tracking-wider text-emerald-400 block mb-0.5">
+                    Completion Remark
+                  </span>
+                  <p className="italic text-slate-200 leading-relaxed whitespace-pre-wrap">
+                    "{task.completionRemark}"
+                  </p>
+                </div>
+              </div>
+            </div>
           )}
 
           {/* Metadata Row: Date, Time, Duration, Reminders */}

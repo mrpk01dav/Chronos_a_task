@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="chronos_bg">#0B0C10</color>
+    <color name="chronos_surface">#161822</color>
+    <color name="chronos_primary">#6366F1</color>
+    <color name="chronos_secondary">#818CF8</color>
+</resources>
