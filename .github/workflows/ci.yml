@@ -1,0 +1,129 @@
+name: Chronos CI
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: chronos-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  web:
+    name: Web (typecheck, test, build)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+
+      - name: Install dependencies (frozen lockfile)
+        run: bun install --frozen-lockfile
+
+      - name: TypeScript check
+        run: bunx tsc --noEmit
+
+      - name: Run tests (only if a test script exists)
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.test ? 0 : 1)"; then
+            bun run test
+          else
+            echo "No 'test' script in package.json - skipping."
+          fi
+
+      - name: Production build
+        run: bun run build
+
+  android:
+    name: Android debug APK
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+    defaults:
+      run:
+        working-directory: android
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - uses: android-actions/setup-android@v3
+
+      - name: Detect Gradle version from wrapper properties
+        id: gv
+        run: |
+          P=gradle/wrapper/gradle-wrapper.properties
+          V=""
+          if [ -f "$P" ]; then
+            V=$(grep distributionUrl "$P" | sed -E 's/.*gradle-([0-9.]+)-(bin|all)\.zip.*/\1/')
+          fi
+          case "$V" in
+            [0-9]*) ;;
+            *) V=8.9 ;;
+          esac
+          echo "Using Gradle $V"
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+
+      - uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: ${{ steps.gv.outputs.version }}
+
+      - name: Ensure Gradle wrapper exists (regenerate if jar is missing)
+        run: |
+          if [ ! -f gradlew ] || [ ! -f gradle/wrapper/gradle-wrapper.jar ]; then
+            echo "Wrapper incomplete - regenerating with Gradle ${{ steps.gv.outputs.version }}"
+            gradle wrapper --gradle-version ${{ steps.gv.outputs.version }}
+          fi
+          test -f gradle/wrapper/gradle-wrapper.jar
+          chmod +x gradlew
+
+      - name: Unit tests and debug build
+        run: ./gradlew --no-daemon clean testDebugUnitTest assembleDebug
+
+      - name: Verify APK and record checksum
+        run: |
+          APK=app/build/outputs/apk/debug/app-debug.apk
+          if [ ! -f "$APK" ]; then
+            echo "::error::Expected APK not found at android/$APK"
+            exit 1
+          fi
+          SIZE=$(stat -c%s "$APK")
+          SHA=$(sha256sum "$APK" | cut -d' ' -f1)
+          echo "$SHA  app-debug.apk" > app/build/outputs/apk/debug/app-debug.apk.sha256
+          {
+            echo "### Debug APK"
+            echo "- Size: ${SIZE} bytes"
+            echo "- SHA-256: \`${SHA}\`"
+          } >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: chronos-debug-apk
+          path: |
+            android/app/build/outputs/apk/debug/app-debug.apk
+            android/app/build/outputs/apk/debug/app-debug.apk.sha256
+          if-no-files-found: error
+          retention-days: 30
+
+      - name: Upload test reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: android-test-reports
+          path: android/app/build/reports/tests/
+          if-no-files-found: ignore
+          retention-days: 14
